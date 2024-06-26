@@ -1,0 +1,57 @@
+{
+  "name": "dmsfront",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@reduxjs/toolkit": "^1.9.5",
+    "axios": "^1.4.0",
+    "date-and-time": "^3.0.2",
+    "js-file-download": "^0.4.12",
+    "npm": "^10.2.5",
+    "prettier": "^3.1.1",
+    "react": "^18.2.0",
+    "react-datepicker": "^4.25.0",
+    "react-dom": "^18.2.0",
+    "react-icons": "^4.12.0",
+    "react-papaparse": "^4.4.0",
+    "react-redux": "^8.1.1",
+    "react-router-dom": "^6.14.1",
+    "react-scripts": "5.0.1",
+    "redux": "^5.0.1",
+    "redux-persist": "^6.0.0",
+    "typescript": "^5.5.2"
+  },
+  "scripts": {
+    "start": "set PORT=3001 && react-scripts start",
+    "build": "react-scripts build",
+    "build-prod": "set REACT_APP_ENV_FILE=.envprod && react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
+    "format": "prettier --write \"src/**/*.{js,jsx}\""
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "devDependencies": {
+    "@babel/core": "^7.0.0-0",
+    "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
+    "@babel/plugin-syntax-flow": "^7.14.5",
+    "@babel/plugin-transform-react-jsx": "^7.14.9",
+    "tailwindcss": "^3.4.4"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}
