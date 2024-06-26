@@ -1,0 +1,112 @@
+
+ 1. exception handling u .net-u
+ - try catch finaly, try samo jedan, vise catch uvek jedan uhvacen, throw (zadrzava exception stack trace) throw ex
+ - custom exception
+ 
+ 2. razlika izmedju ref i out
+ 
+ 3. da li moze this kada zelimo da pozovemo static, ne moze jer se staticna metode ne instancira
+ 
+ 3. razlika izmedju const i readonly (sta je seald)
+ 
+ 4. sta je method overriding a sta overloading
+ - overload - iste metode koje imaju vise rezlicitih parametara
+ 
+ 5. razlika izmedju string i string builder - imjutable...
+ 
+ 6. razlika izmedju IS i AS
+ 
+ 7. solid principi
+ 
+ 8. sta je interface na engleskom se postavi pitanje i ocekuje odgovor
+ 
+ 9. 4 pravila objektnog programiranja
+ 
+ 10. interface i abstraktna - zajednicko i razlike
+ 
+ 11. da li postoji visestruko nasledjivanje
+ 
+ 12. sta su delegati - func, action, predicate
+ 
+ 13. dynamics tip u realtime
+ 
+ 14. extension metode, sta je to?
+ 
+ 15. anonimne funkcije i anonimni tipovi
+ 
+ 16. linqu - cemu sluzi, znaci opste o njemu
+ 
+ 17. baze - tipovi join-ova - objasnjavati na primeru skupova - sta je presek, sta je unija
+ 
+ 18. dependency injection - constructor, method, property
+ 
+ 19. razlike izmedju struct i class
+
+ 20. deffered execution u linku - benefiti i pogodnosti
+ 
+ 21. generics <T> - klase i ostalo
+ 
+ 22. yeald
+ 
+ 23. tipovi testiranja - autmoatski, component, unit, UI, manualni
+ 
+ 24. razlika izmedju stack overflow i out of memory
+ 
+ 25. lock(object)
+ 
+ ???????????
+ 26. indeksiranje baza i zasto brzo radi (binarna je pretraga - deep first) - pogledati binarnu pretragu.
+ ???????????
+ 
+ 27. sta je managed i unmanaged code
+ 
+ 28. razlike: continue, break
+ 
+ 29. value i referenc tipovi - objasniti razlike
+ 
+ 30. zasto ne moze nista osim public u interface-u, jer je u njemu uvek sve public
+ 
+ 31. zasto korisito finaly block u exception - unistavanje konekcije ka bazi, zatvaranje biblioteke itd
+ 
+ 32. virtualne i abstrack metode, viruelne se mogu a ne moraju override-ovati, abstract moraju
+ 
+ 33. sta je refleksija u .NET-u 
+ - ucitavanje entiteta u realtimu iz nekog dll-a i objekta
+ 
+ 34. sta znaci internal, protected, protected - internal kao kombinacija
+ 
+ 35. da li je operator overloading supported in C#
+ 
+ 36. thread pool
+ 
+ 37. dispoze i finalize metode
+
+ ---------------------------------------------------
+
+ zadaci
+ 
+ 1. naci min i max u nizu i vratiti kao novi niz prvi min drugi max
+ 
+ 2. dependency injection - gde je narusen
+    dependency inversion
+
+ 3. razvrstavanje jezika po vrsti programiranja, da li je objektno, funkcionalno
+ 
+ 3. tipovi join-ova
+ 
+ 4. sta utice na performanse u bazi, indeksiranje na select,
+	na sta indeksiranje moze biti uspesno
+	
+ 5. prvi i poslednji clan niza
+ 
+ 6. sta se moze popraviti u metodi:
+	- naziv metode - smisleno
+	- naziv parametara - smisleno
+	- umesto foreach kroz listu, da se uradi prepravka u hash da bi pretraga bila brza.
+
+ 7. razlika izmedju Set-a i List
+ 
+ 8. event sourcing
+ 
+ 9. JQuary - neki count, brojanje <div>
+ 
