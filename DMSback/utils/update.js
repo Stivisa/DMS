@@ -14,24 +14,17 @@ const git = simpleGit();
 
 const execPromise = util.promisify(exec);
 
-async function gitClone(repoUrl, localPath) {
-  return new Promise((resolve, reject) => {
-    git.clone(repoUrl, localPath, (err, result) => {
-      if (err) reject(err);
-      else resolve(result);
-    });
-  });
-}
-
 async function cloneOrUpdateRepo() {
   const ipAddress = getIPAddress();
   //console.log('IP Address:', ipAddress);
   
   const localPath = path.join(getDmsFolderPath(), 'program');
   const localPathFront = path.join(localPath, 'DMSfront');
+  const localPathBack = path.join(localPath, 'DMSback');
 
   const destPath = path.join(getDmsFolderPath(), 'production');
   const destPathFront = path.join(destPath, 'DMSfront');
+  const destPathBack = path.join(destPath, 'DMSback');
 
 
   try {
@@ -53,6 +46,7 @@ async function cloneOrUpdateRepo() {
       fs.ensureDirSync(localPath); // Ensure the directory exists
       fs.ensureDirSync(destPath);
       fs.ensureDirSync(destPathFront);
+      fs.ensureDirSync(destPathFront);
 
       await git.clone(repoUrl, localPath);
       //await gitClone(repoUrl, localPath);
@@ -64,9 +58,9 @@ async function cloneOrUpdateRepo() {
     }
 
       console.log('Running yarn install...');
-      const { stdout, stderr } = await execPromise('yarn install', { cwd: localPathFront });
-      console.log(`yarn install output: ${stdout}`);
-      console.error(`yarn install stderr: ${stderr}`);
+      const { stdout: buildStdout1, stderr: buildStderr1 } = await execPromise('yarn install', { cwd: localPathFront });
+      console.log(`yarn install output: ${buildStdout1}`);
+      console.error(`yarn install stderr: ${buildStderr1}`);
 
       console.log('Running yarn build...');
       const { stdout: buildStdout, stderr: buildStderr } = await execPromise('yarn build', { cwd: localPathFront });
@@ -74,6 +68,13 @@ async function cloneOrUpdateRepo() {
       console.error(`yarn build stderr: ${buildStderr}`);
 
       await fs.copy(path.join(localPathFront, 'build'), destPathFront, { overwrite: true });
+
+      await fs.copy(path.join(localPathBack, 'build'), destPathBack, { overwrite: true });
+
+      console.log('Running yarn install...');
+      const { stdout, stderr } = await execPromise('yarn install', { cwd: destPathBack });
+      console.log(`yarn install output: ${stdout}`);
+      console.error(`yarn install stderr: ${stderr}`);
 
     console.log('Update completed successfully.');
   } catch (error) {
@@ -87,9 +88,9 @@ function getIPAddress() {
   const interfaces = os.networkInterfaces();
   const interfaceNames = Object.keys(interfaces);
   for (let i = interfaceNames.length - 1; i >= 0; i--) {
-    const interface = interfaces[interfaceNames[i]];
-    for (let i = 0; i < interface.length; i++) {
-      const { address, family, internal } = interface[i];
+    const interfaceTemp = interfaces[interfaceNames[i]];
+    for (let i = 0; i < interfaceTemp.length; i++) {
+      const { address, family, internal } = interfaceTemp[i];
       // Check for IPv4 and non-internal (i.e., not localhost) address
       if (family === 'IPv4' && !internal) {
         //console.log(address);
@@ -99,11 +100,6 @@ function getIPAddress() {
   }
   return 'Unable to detect IP address';
 }
-
-function wait(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
 
 module.exports = {
     cloneOrUpdateRepo,
