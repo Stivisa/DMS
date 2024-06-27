@@ -287,7 +287,7 @@ const DocumentDynamic = () => {
               className="button-default flex items-center"
               onClick={() => updateApp()}
             >
-              <FiBookOpen title="Arhivska knjiga"/> PREGLEDAJ ARHIVU
+              <FiBookOpen title="Arhivska knjiga"/> AZURIRAJ
             </button>
           <button
               className="button-default flex items-center"
