@@ -399,7 +399,7 @@ const DocumentDynamic = () => {
               className="bg-white hover:bg-gray-50 rounded-lg border p-1 pl-2 grid grid-cols-3 items-center justify-between cursor-pointer"
               onDoubleClick={() => navigate(`/document/edit/${document._id}`)}
             >    
-              <p>{document.name}</p>
+              <p className="break-all">{document.name}</p>
               <p className="hidden sm:flex">
                 {date.format(new Date(document.createdAt), "DD-MM-YYYY ")}
               </p>

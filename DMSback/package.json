@@ -1,0 +1,40 @@
+{
+  "name": "dmsback",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "nodemon index.js",
+    "format": "prettier --write \"**/*.{js,jsx}\""
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "archiver": "^7.0.1",
+    "body-parser": "^1.20.2",
+    "check-disk-space": "^3.4.0",
+    "child_process": "^1.0.2",
+    "cors": "^2.8.5",
+    "crypto-js": "^4.2.0",
+    "date-fns": "^3.6.0",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "formidable": "^3.5.1",
+    "fs": "^0.0.1-security",
+    "fs-extra": "^11.2.0",
+    "jsonwebtoken": "^9.0.1",
+    "mongoose": "^8.4.1",
+    "mongoose-sequence": "^6.0.0",
+    "nodemon": "^3.0.1",
+    "os": "^0.1.2",
+    "pdfmake": "^0.2.10",
+    "roboto-font": "^0.1.0",
+    "simple-git": "^3.25.0",
+    "util": "^0.12.5",
+    "winston": "^3.10.0",
+    "winston-mongodb": "^5.1.1"
+  },
+  "devDependencies": {
+    "prettier": "3.3.1"
+  },
+  "private": true
+}
