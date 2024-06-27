@@ -36,7 +36,7 @@ router.put("/:id", verifyToken, async (req, res) => {
     res.status(200).json(updatedTag);
   } catch (err) {
     if (err.code === 11000 && err.keyPattern.name) { // MongoDB duplicate key error
-      res.status(400).json({ error: "1Naziv taga postoji. Naziv taga mora biti jedinstven!", code: "NAME_DUPLICATE" });
+      res.status(400).json({ error: "Naziv taga postoji. Naziv taga mora biti jedinstven!", code: "NAME_DUPLICATE" });
     } else{
       logger.error("Error edit tag:", err)
       res.status(500).json({ error: "Došlo je do greške prilikom izmene taga.", code: "GENERIC_ERROR" });
