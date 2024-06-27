@@ -69,7 +69,7 @@ async function cloneOrUpdateRepo() {
 
       await fs.copy(path.join(localPathFront, 'build'), destPathFront, { overwrite: true });
 
-      await fs.copy(path.join(localPathBack, 'build'), destPathBack, { overwrite: true });
+      await fs.copy(localPathBack, destPathBack, { overwrite: true });
 
       console.log('Running yarn install...');
       const { stdout, stderr } = await execPromise('yarn install', { cwd: destPathBack });

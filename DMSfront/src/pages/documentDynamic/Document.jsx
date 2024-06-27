@@ -275,7 +275,7 @@ const DocumentDynamic = () => {
       <div className="px-2 py-1 border-2 border-gray-400 rounded-lg bg-white">
       <div className="w-full flex justify-between items-center">
           <div className="flex items-center">
-          <h1 className="text-xl text-color font-bold">DOKUMENTI1</h1>
+          <h1 className="text-xl text-color font-bold">DOKUMENTI</h1>
             <Link to="/document/new">
               <button className="button-basic ml-1">
                 Dodaj novi dokument
