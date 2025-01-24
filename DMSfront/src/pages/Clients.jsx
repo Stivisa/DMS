@@ -16,7 +16,7 @@ const Clients = () => {
   const [modalOnDelete, setModalOnDelete] = useState(false);
   const [choiceModalDelete, setChoiceModalDelete] = useState(false);
   const [name, setName] = useState("");
-  const [internal, setInternal] = useState(false);
+  //const [internal, setInternal] = useState(false);
   const [selectedClientEdit, setSelectedClientEdit] = useState(null);
   const [modalOnInfo, setModalOnInfo] = useState(false);
 
@@ -81,10 +81,10 @@ const Clients = () => {
         await userRequest
           .put("clients/" + selectedClientEdit._id, {
             name,
-            internal,
+            //internal,
           }).then(() => {
             setName("");
-            setInternal(false);
+            //setInternal(false);
             setSelectedClientEdit(null);
             getClients();
           })
@@ -95,10 +95,10 @@ const Clients = () => {
       } else {
         await userRequest.post("clients", {
           name,
-          internal,
+          //internal,
         }).then(() => {
           setName("");
-          setInternal(false);
+          //setInternal(false);
           getClients();
         }).catch(function (err) {
           handleRequestErrorAlert(err);
@@ -144,9 +144,11 @@ const Clients = () => {
     }
   };
 
+  /*
   const handleInternalChange = () => {
     setInternal(!internal);
   };
+  */
 
   const sectionsInfo = [
     {
@@ -194,17 +196,6 @@ const Clients = () => {
                 placeholder="Naziv novog komitenta"
                 onChange={(ev) => setName(ev.target.value)}
               />
-              <div className="flex items-center mx-2 text-color">
-                <input
-                  type="checkbox"
-                  checked={internal}
-                  onChange={handleInternalChange}
-                  className="w-4 h-4"
-                ></input>
-                <label className="ml-2 text-md font-semibold ">
-                  Unutrašnja organizacija
-                </label>
-              </div>
               <div className="flex ml-1">
                 <button
                   type="submit"
@@ -218,7 +209,7 @@ const Clients = () => {
                   onClick={() => {
                     setSelectedClientEdit(null);
                     setName("");
-                    setInternal(false);
+                    //setInternal(false);
                     setErrors({});
                   }}
                 >
@@ -281,7 +272,7 @@ const Clients = () => {
               onDoubleClick={() => {
                 setSelectedClientEdit(client);
                 setName(client.name);               
-                setInternal(client.internal);
+                //setInternal(client.internal);
                 setErrors({}); 
               }}
             >    
@@ -295,7 +286,7 @@ const Clients = () => {
                   onClick={() => {
                     setSelectedClientEdit(client);
                     setName(client.name);
-                    setInternal(client.internal);
+                    //setInternal(client.internal);
                     setErrors({});
                   }}
                 >

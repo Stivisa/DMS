@@ -105,7 +105,6 @@ const Settings = () => {
     }
   }, [selectedCompanyDelete, getCompanies]);
 
-   //dugme disabled, treba true onclick
   useEffect(() => {
     if (choiceModalDelete) {
       deleteCompany();
@@ -215,7 +214,7 @@ const Settings = () => {
                 <button
                   className={"button-delete ml-1"}
                   onClick={() => {
-                    setModalOnDelete(false);
+                    setModalOnDelete(true);
                     setSelectedCompanyDelete(company);
                   }}
                 >

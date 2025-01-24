@@ -7,7 +7,7 @@ import {
 import { HiOutlineBuildingOffice2 } from "react-icons/hi2";
 import { TbCategory } from "react-icons/tb";
 import { IoDocumentsOutline  } from "react-icons/io5";
-import { MdOutlineDelete , MdHelpOutline  } from "react-icons/md";
+import { MdOutlineDelete} from "react-icons/md";
 import { useSelector } from "react-redux";
 import { SlPeople } from "react-icons/sl";
 
@@ -26,21 +26,20 @@ const Sidebar = ({ activeLink, setActiveLink }) => {
     setActiveLink(to);
   };
 
+  const handleRecycleBinClick = (event, to) => {
+    if(to === '/recyclebin' && !companyName) {
+      alert('Niste izabrali firmu!');
+      event.preventDefault();
+    }
+    setActiveLink(to);
+  };
+
   const handleLinkClick = (to) => {
     setActiveLink(to);
   };
     return (
         <div className="bg-white w-32 h-full border shadow">       
-            <ul className="flex flex-col p-0 overflow-y-auto">
-                {/*
-                <NavLink 
-                    to="/documents" 
-                    icon={<IoDocumentsOutline  size={35} />} 
-                    text="Dokumenti" 
-                    isActive={activeLink === '/documents'} 
-                    onClick={(event) => handleDocumentClick(event, '/documents')}
-                />
-                */}   
+            <ul className="flex flex-col p-0 overflow-y-auto">                 
                 <NavLink 
                     to="/document" 
                     icon={<IoDocumentsOutline  size={35} />} 
@@ -74,7 +73,7 @@ const Sidebar = ({ activeLink, setActiveLink }) => {
                     icon={<MdOutlineDelete  size={35} />} 
                     text="Obrisani dokumenti" 
                     isActive={activeLink === '/recyclebin'} 
-                    onClick={() => handleLinkClick('/recyclebin')}
+                    onClick={(event) => handleRecycleBinClick(event, '/recyclebin')}
                 />
                 {isAdmin && (
                     <NavLink 
@@ -94,6 +93,7 @@ const Sidebar = ({ activeLink, setActiveLink }) => {
                     onClick={() => handleLinkClick('/settings')}
                     />
                 )}
+                {/*
                 <NavLink 
                     to="/help" 
                     icon={<MdHelpOutline  size={35} />} 
@@ -101,6 +101,7 @@ const Sidebar = ({ activeLink, setActiveLink }) => {
                     isActive={activeLink === '/help'} 
                     onClick={() => handleLinkClick('/help')}
                 />
+                */}
             </ul>
         </div>
     )

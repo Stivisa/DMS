@@ -21,7 +21,6 @@ const Categories = () => {
   const [choiceModalDelete, setChoiceModalDelete] = useState(false);
   const [name, setName] = useState("");
   const [label, setLabel] = useState("");
-  const [keepPeriod, setKeepPeriod] = useState(0);
   const [selectedCategoryEdit, setSelectedCategoryEdit] = useState(null);
   const [modalOnInfo, setModalOnInfo] = useState(false);
   const [consentNumber, setConsentNumber] = useState("");
@@ -33,6 +32,9 @@ const Categories = () => {
   const isAdmin = user && user.isAdmin;
 
   const [errors, setErrors] = useState({});
+
+  const [keepYears, setKeepYears] = useState(0);
+  const [keepMonths, setKeepMonths] = useState(0);
 
   const getCategories = useCallback(async () => {
     try {
@@ -96,9 +98,15 @@ const Categories = () => {
 
   const validateForm = () => {
     const errors = {};
-    if (!name) errors.name = "Naziv kategorije je obavezan!";
-    if (!label) errors.label = "Oznaka kategorije je obavezna!";
-    if (!keepPeriod) errors.keepPeriod = "Rok čuvanja kategorije je obavezan!";
+    if (!name.trim()) errors.name = "Naziv kategorije je obavezan!";
+    if (!label.trim()) errors.label = "Oznaka kategorije je obavezna!";
+    //if (!keepPeriod) errors.keepPeriod = "Rok čuvanja kategorije je obavezan!";
+    if (keepYears < 0 || keepMonths < 0) {
+      errors.keepPeriodNegative = "Godine i meseci ne mogu biti negativni!";
+    }
+    if (keepMonths > 12) {
+      errors.keepPeriodMonths = "Meseci moraju biti između 1 i 12!";
+    }
     return errors;
   };
 
@@ -115,11 +123,13 @@ const Categories = () => {
       await userRequest.put("categories/" + selectedCategoryEdit._id, {
         name,
         label,
-        keepPeriod,
+        keepYears,
+        keepMonths,
       }).then(() => {
         setName("");
         setLabel("");
-        setKeepPeriod(0);
+        setKeepYears(0);
+        setKeepMonths(0);
         setSelectedCategoryEdit(null);
         getCategories();
       })
@@ -131,11 +141,13 @@ const Categories = () => {
       await userRequest.post("categories", {
         name,
         label,
-        keepPeriod,
+        keepYears,
+        keepMonths,
       }).then(() => {
         setName("");
         setLabel("");
-        setKeepPeriod(0);
+        setKeepYears(0);
+        setKeepMonths(0);
         getCategories();
       })
       .catch(function (err) {
@@ -205,7 +217,7 @@ const Categories = () => {
     },
     {
       header : "Rok čuvanja iz liste kategorija",
-      text: "unosi se broj meseci. Ako je broj deljiv sa 12 bez ostatka, onda prikaz u arhivskoj knjizi je izrazen u godinama.",
+      text: "unosi se broj godina i/ili meseci (inače podrazumevano trajno)",
     }
   ];
 
@@ -276,7 +288,8 @@ const Categories = () => {
                     setSelectedCategoryEdit(null);
                     setName("");
                     setLabel("");
-                    setKeepPeriod(0);
+                    setKeepYears(0);
+                    setKeepMonths(0);
                     setErrors({});
                   }}
                 >
@@ -285,13 +298,20 @@ const Categories = () => {
               </div>  
           </div>
           <div className="mt-1 flex items-center"> 
-              <label className="text-color">Rok čuvanja iz liste kategorija:</label>
+              <label className="text-color">Rok čuvanja (podrazumevano trajno):</label>
               <input
                 className="input-field w-1/12 ml-1"
                 type="number"
-                value={keepPeriod === 0 ? '' : keepPeriod}
+                value={keepYears === 0 ? '' : keepYears}
+                placeholder="Broj godina"
+                onChange={(ev) => setKeepYears(ev.target.value)}
+              />  
+              <input
+                className="input-field w-1/12 ml-1"
+                type="number"
+                value={keepMonths === 0 ? '' : keepMonths}
                 placeholder="Broj meseci"
-                onChange={(ev) => setKeepPeriod(ev.target.value)}
+                onChange={(ev) => setKeepMonths(ev.target.value)}
               />  
           </div>
           {Object.keys(errors).length > 0 && (
@@ -369,8 +389,9 @@ const Categories = () => {
               onDoubleClick={() => {
                 setSelectedCategoryEdit(category);
                 setName(category.name);
-                setLabel(category.label);
-                setKeepPeriod(category.keepPeriod ?? 0);
+                setLabel(category.label ?? '');
+                setKeepYears(category.keepYears ?? 0);
+                setKeepMonths(category.keepMonths ?? 0);
                 setErrors({});
               }}
             >              
@@ -378,7 +399,13 @@ const Categories = () => {
               <p className="hidden sm:flex items-center">
                 {category.label}
               </p>
-              <p className="hidden sm:flex">{category.keepPeriod}</p>
+              <p className="hidden sm:flex">
+                {category.keepPeriod === 0
+                  ? 'trajno'
+                  : `${category.keepYears ? category.keepYears + ' god.' : ''}${
+                      category.keepMonths ? ' ' + category.keepMonths + ' mes.' : ''
+                    }`}
+              </p>
               <p className="hidden sm:flex">
                 {date.format(new Date(category.createdAt), "DD-MM-YYYY ")}
               </p>
@@ -389,7 +416,8 @@ const Categories = () => {
                     setSelectedCategoryEdit(category);
                     setName(category.name);
                     setLabel(category.label);
-                    setKeepPeriod(category.keepPeriod);
+                    setKeepYears(category.keepYears);
+                    setKeepMonths(category.keepMonths);
                     setErrors({});
                   }}
                   title="Izmeni"

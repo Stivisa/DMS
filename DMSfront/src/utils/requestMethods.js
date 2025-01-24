@@ -37,6 +37,7 @@ userRequest.interceptors.request.use(
     if(company){
       config.headers.companyfolder = company?.currentCompany?.folderName;
       config.headers.companyid = company?.currentCompany?._id;
+      config.headers.companyname = company?.currentCompany?.name;
     }
     return config;
   },

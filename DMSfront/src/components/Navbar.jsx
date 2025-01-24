@@ -79,9 +79,9 @@ const NavbarNew = ({ onResetActiveLink }) => {
                     </div>
                     <div className="h-2 w-full rounded-md bg-gray-400">
                         <div
-                        style={{ width: `${(diskFree / diskSize) * 100}%` }}
+                        style={{ width: `${100-((diskFree / diskSize) * 100)}%` }}
                         className={`h-full rounded-md ${
-                            ((diskFree / diskSize) * 100) > 80 ? "bg-rose-600" : "bg-teal-400"
+                            ((diskFree / diskSize) * 100) < 20 ? "bg-rose-600" : "bg-teal-400"
                         }`}
                         ></div>
                     </div>

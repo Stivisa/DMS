@@ -92,18 +92,6 @@ const Users = () => {
         .catch(function (err) {
           handleRequestErrorAlert(err);
           setErrors({ message: err.response?.data?.error});
-          //errors.message = err.response?.data?.error;   
-          /*
-          const errorCode = err.response?.data?.code;  
-          if (errorCode === "USERNAME_DUPLICATE") {
-            errors.message = err.response?.data?.error;   
-          } 
-          else {
-            handleRequestErrorAlert(err); //zvace ga getUsers() svakako, bitno zbog ERR_NETWORK
-            errors.message  = err.response?.data?.error;
-          }   
-          */
-          //setErrors(errors); 
         });
   }
 

@@ -50,7 +50,7 @@ export default function Login() {
     <div className="grid grid-cols-1  h-screen w-full">
       <div className="bg-white flex flex-col justify-center items-center">
         <form className="max-w-[400px] w-full mx-auto bg-white p-4 rounded">
-          <h2 className="text-3xl font-bold text-center py-6">ARHIVA</h2>
+          <h2 className="text-3xl font-bold text-center py-6">ARHIVA DOKUMENATA</h2>
           <div className="flex flex-col py-2">
             <p>Korisničko ime</p>
             <input

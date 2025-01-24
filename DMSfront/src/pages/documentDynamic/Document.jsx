@@ -33,10 +33,14 @@ const DocumentDynamic = () => {
   const [sortBy, setSortBy] = useState(null);
   const [sortOrder, setSortOrder] = useState(true);
 
+  const [expired, setExpired] = useState(false);
+
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(12);
   const [totalPages, setTotalPages] = useState(0);
   const [searchName, setSearchName] = useState('');
+
+  const [errors, setErrors] = useState({});
 
   var dateCopy = new Date();
   //dateCopy.setHours(24, 0, 0, 0);
@@ -58,22 +62,23 @@ const DocumentDynamic = () => {
       limit,
       sortBy,
       sortOrder,
+      expired,
       ...(searchName ? { name: searchName } : {}),
       ...(startDate && endDate ? { startdate: startDate, enddate: endDate } : {})
     };
     return params;
-  }, [page, limit, searchName, startDate, endDate, sortBy, sortOrder]);
+  }, [page, limit, searchName, startDate, endDate, sortBy, sortOrder,expired]);
 
   const getDocuments = useCallback(
     async () => {
-       
       const params = getParams();
       try {     
         const response = await userRequest.get('document', { params });
         setTotalPages(response.data.totalPages);
         setDocuments(response.data?.data);
-      } catch (error) {
-        handleRequestErrorAlert(error);
+      } catch (err) {
+        handleRequestErrorAlert(err);
+        setErrors({ message: err.response?.data?.error});
       }
     },
     [getParams],
@@ -107,12 +112,53 @@ const DocumentDynamic = () => {
       
           window.URL.revokeObjectURL(downloadUrl); // Clean up
         }
-      } catch (error) {
-        handleRequestErrorAlert(error);
-        return []; // Return an empty array in case of error
+      } catch (err) {
+        handleRequestErrorAlert(err);
+        const contentType = err?.response?.headers['content-type'];
+        if (contentType && contentType.includes('application/json')) {
+          const reader = new FileReader();
+          reader.onload = function() {
+            const errorData = JSON.parse(reader.result);
+            setErrors({ message: errorData.error });
+          } 
+          reader.readAsText(err.response.data);
+        }
+        //setErrors({ message: err.response?.data?.error});
       }
     },
     [getParams],
+  );
+
+  const getExpiredReport = useCallback(
+    async () => {
+      try {
+        const response = await userRequest.get('document/generate/reportexpired', { responseType: 'blob'});  
+        
+          const blob = new Blob([response.data], { type: 'application/pdf' });
+          const dataUrl = URL.createObjectURL(blob);
+        
+          window.open(dataUrl, "_blank");
+        
+          // Clean up the object URL after some time
+          setTimeout(() => {
+            URL.revokeObjectURL(dataUrl);
+          }, 10000); // Adjust the time as necessary
+        
+      } catch (err) {
+        handleRequestErrorAlert(err);
+        const contentType = err?.response?.headers['content-type'];
+        if (contentType && contentType.includes('application/json')) {
+          const reader = new FileReader();
+          reader.onload = function() {
+            const errorData = JSON.parse(reader.result);
+            setErrors({ message: errorData.error });
+          } 
+          reader.readAsText(err.response.data);
+        }
+        //setErrors({ message: err.response?.data?.error});
+      }
+    },
+    [],
   );
 
   const handleNextPage = () => {
@@ -153,8 +199,9 @@ const DocumentDynamic = () => {
           }).then(() => {
             getDocuments();
           })
-          .catch(function (error) {
-            handleRequestErrorAlert(error);
+          .catch(function (err) {
+            handleRequestErrorAlert(err);
+            setErrors({ message: err.response?.data?.error});
           });
       setChoiceModalDelete(false);
     }
@@ -167,12 +214,15 @@ const DocumentDynamic = () => {
   }, [choiceModalDelete, deleteProduct]);
 
   async function ExportToJson() {
+    /*
     const archivebook = true;
     const params = {
       archivebook,
       ...(searchName ? { name: searchName } : {}),
       ...(startDate && endDate ? { startdate: startDate, enddate: endDate } : {})
     };
+    */
+    const params = getParams();
   
     try {
       const response = await userRequest.get("document", { 
@@ -197,17 +247,19 @@ const DocumentDynamic = () => {
           fileDownload(csvString, "documents.csv");
         },
         error: (error) => {
-          handleRequestErrorAlert(error);
+          console.log(error);
         }
       });
   
       // Download JSON file
       fileDownload(jsonString, "documents.json");
-    } catch (error) {
-      handleRequestErrorAlert(error);
+    } catch (err) {
+      handleRequestErrorAlert(err);
+      setErrors({ message: err.response?.data?.error});
     }
   }
 
+  //disabled for now
   async function ImportJson(uploadedFile) {
     const fileReader = new FileReader();
     fileReader.onloadend = async () => {
@@ -254,21 +306,10 @@ const DocumentDynamic = () => {
       buttonClass: "delete"
     },
     {
-      header : "Pretraga po datumu",
+      header : "Pretraga po datumu unosa (dokumenta u program arhive)",
       text: "uključujući oba datuma. Brisanje bilo kog datuma, vraća sva dokumenta"
     }
   ];
-
-  const updateApp = useCallback(
-    async () => {
-      try {     
-        await userRequest.get('settings/update/app');
-      } catch (error) {
-        console.log(error)
-      }
-    },
-    [],
-  );
 
   return (
     <>
@@ -285,12 +326,6 @@ const DocumentDynamic = () => {
           <div className="flex items-center">
           <button
               className="button-default flex items-center"
-              onClick={() => updateApp()}
-            >
-              <FiBookOpen title="Arhivska knjiga"/> AZURIRAJ
-            </button>
-          <button
-              className="button-default flex items-center"
               onClick={() => getArchiveBook(true)}
             >
               <FiBookOpen title="Arhivska knjiga"/> PREGLEDAJ ARHIVU
@@ -301,9 +336,15 @@ const DocumentDynamic = () => {
             >
               <FiBookOpen title="Arhivska knjiga"/> PREUZMI ARHIVU
             </button>
+            <button
+              className="button-default flex items-center"
+              onClick={() => getExpiredReport(true)}
+            >
+              <FiBookOpen title="Arhivska knjiga"/> PREGLEDAJ BEZVREDNI MATERIJAL
+            </button>
             <p
               onClick={() => ExportToJson()}
-              className="cursor-pointer"
+              className="cursor-pointer disabled"
             >
               <BiExport  title="Izvezi podatke" className="text-color text-2xl" />
             </p>
@@ -313,7 +354,7 @@ const DocumentDynamic = () => {
                 className="hidden"
                 type="file"
                 accept=".json,application/json"
-                //disabled
+                disabled
                 //multiple
                 onChange={(e) => ImportJson(e.target.files[0])}
               />
@@ -330,7 +371,7 @@ const DocumentDynamic = () => {
         </div>
       </div>
       <div className="w-full px-2 p-1 border rounded-lg bg-white flex items-center">
-        <h1 className="text-lg text-color font-semibold">Pretraga:</h1>
+        <h1 className="text-lg text-color font-semibold">Naziv:</h1>
         <div className="flex items-center">
           <input
             id="search-box"
@@ -339,6 +380,7 @@ const DocumentDynamic = () => {
             onChange={filterByName}
           />
         </div>
+        <h1 className="text-lg text-color font-semibold ml-1">Period nastanka:</h1>
         <div className="flex ml-1">
           <DatePicker
             className="border-2 border-gray-300 w-24 cursor-pointer"
@@ -354,8 +396,17 @@ const DocumentDynamic = () => {
             dateFormat="dd/MM/yyyy"
           />
         </div>
+        <h1 className="text-lg text-color font-semibold ml-1">Istekli dokumenti:</h1>
+        <div className="flex items-center">
+          <input
+            id="expired-checkbox"
+            type="checkbox"
+            className="checkbox-field ml-1 w-5 h-5 rounded-full"
+            onChange={(e) => setExpired(e.target.checked)}
+          />
+        </div>
       </div>
-      <div className="grid grid-cols-3 items-center justify-between pl-2">
+      <div className="grid grid-cols-4 items-center justify-between pl-2">
         <div>
           <span className={
             sortBy === 'name'
@@ -375,9 +426,14 @@ const DocumentDynamic = () => {
         </div>
         <div>
           <span className={
-            sortBy === 'createdAt'
-              ? 'inline-flex font-semibold text-teal-400 cursor-pointer'
-              : 'inline-flex font-semibold text-gray-800 cursor-pointer'
+          'inline-flex font-semibold text-gray-800'
+          }>
+          Kategorija
+          </span>
+        </div>
+        <div>
+          <span className={    
+            'inline-flex font-semibold text-gray-800 cursor-pointer'
           }
           onClick={() => {
             sortingCreatedAt();
@@ -396,10 +452,11 @@ const DocumentDynamic = () => {
           {documents.map((document, id) => (
             <li
               key={id}
-              className="bg-white hover:bg-gray-50 rounded-lg border p-1 pl-2 grid grid-cols-3 items-center justify-between cursor-pointer"
+              className="bg-white hover:bg-gray-50 rounded-lg border p-1 pl-2 grid grid-cols-4 items-center justify-between cursor-pointer"
               onDoubleClick={() => navigate(`/document/edit/${document._id}`)}
             >    
               <p className="break-all">{document.name}</p>
+              <p className="break-all">{document.category?.name}</p>
               <p className="hidden sm:flex">
                 {date.format(new Date(document.createdAt), "DD-MM-YYYY ")}
               </p>
@@ -428,6 +485,15 @@ const DocumentDynamic = () => {
         <span className="mx-2 text-gray-800">
          Strana {page} od {totalPages}</span>
         <button className="button-basic" onClick={handleNextPage} disabled={page === totalPages}><ImArrowRight  size={20} /></button>
+        <div>
+            {Object.keys(errors).length > 0 && (
+            <div className="text-rose-600 ml-1">
+              {Object.keys(errors).map((key) => (
+                <p key={key}>{errors[key]}</p>
+              ))}
+            </div>
+          )}
+            </div>
       </div>
       {modalOnDelete && (
         <DeleteModal

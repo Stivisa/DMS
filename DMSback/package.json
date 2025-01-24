@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon index.js",
+    "start": "nodemon src/index.js",
     "format": "prettier --write \"**/*.{js,jsx}\"",
-    "pack": "pkg -t node18-win-x64 ./index.js",
-    "exe": "pkg ./index.js -t node18-win-x64 --output dmsserver.exe --debug"
+    "pack": "pkg -t node18-win-x64 src/index.js",
+    "exe": "pkg src/index.js -t node18-win-x64 --output dmsserver.exe --debug"
   },
   "author": "",
   "license": "MIT",
@@ -30,8 +30,6 @@
     "os": "^0.1.2",
     "pdfmake": "^0.2.10",
     "roboto-font": "^0.1.0",
-    "simple-git": "^3.25.0",
-    "util": "^0.12.5",
     "winston": "^3.10.0",
     "winston-mongodb": "^5.1.1"
   },
