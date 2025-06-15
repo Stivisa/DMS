@@ -21,8 +21,13 @@ const verifyToken = (req, res, next) => {
           "User: " +
             req.user.username +
             "(" +
-            req.user.id +  ")" +
-            ' Company: ' + companyName + '(' + companyId + ')' +
+            req.user.id +
+            ")" +
+            " Company: " +
+            companyName +
+            "(" +
+            companyId +
+            ")" +
             ". Action: " +
             req.method +
             " " +

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Users from "./pages/Users";
 import Clients from "./pages/Clients";
@@ -15,7 +15,7 @@ import CompaniesMenu from "./pages/CompaniesMenu";
 import DocumentDynamic from "./pages/documentDynamic/Document";
 import DocumentDynamicNew from "./pages/documentDynamic/DocumentNew";
 import DocumentDynamicEdit from "./pages/documentDynamic/DocumentEdit";
-import { useDispatch } from 'react-redux';
+import { useDispatch } from "react-redux";
 import { logout } from "./redux/userRedux";
 
 function App() {
@@ -26,27 +26,27 @@ function App() {
   const dispatch = useDispatch();
   useEffect(() => {
     const handleStorageChange = (event) => {
-      if (event.key === 'persist:root') {
+      if (event.key === "persist:root") {
         const persistedState = JSON.parse(event?.newValue);
         const userObject = JSON.parse(persistedState?.user);
         const currentUser = userObject?.currentUser;
         if (currentUser === null) {
-          console.log("LOGOUT")
+          console.log("LOGOUT");
           dispatch(logout());
         }
       }
     };
 
-    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener("storage", handleStorageChange);
 
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener("storage", handleStorageChange);
     };
   }, [dispatch]);
 
   return (
     <BrowserRouter>
-      <div className="bg-gray-100 h-screen">
+      <div className="bg-default h-screen">
         <Routes>
           <Route element={<PrivateRoutes />}>
             <Route element={<DocumentDynamic />} path="/" />
@@ -55,7 +55,7 @@ function App() {
             <Route element={<Tags />} path="/tags" />
             <Route element={<Tags />} path="/tags/:id" />
             <Route element={<Categories />} path="/categories" />
-      
+
             {/*
             <Route element={<Documents />} path="/documents" />
             <Route element={<DocumentNew />} path="/documents/new" />
@@ -64,12 +64,15 @@ function App() {
 
             <Route element={<DocumentDynamic />} path="/document" />
             <Route element={<DocumentDynamicNew />} path="/document/new" />
-            <Route element={<DocumentDynamicEdit />} path="/document/edit/:id" />
+            <Route
+              element={<DocumentDynamicEdit />}
+              path="/document/edit/:id"
+            />
 
             <Route element={<RecycleBin />} path="/recyclebin" />
 
             <Route element={<Password />} path="/password" />
-            {superAdmin &&<Route element={<Settings />} path="/settings" />}
+            {superAdmin && <Route element={<Settings />} path="/settings" />}
             <Route element={<Help />} path="/help" />
             <Route element={<CompaniesMenu />} path="/companiesmenu" />
           </Route>

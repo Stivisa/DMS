@@ -5,20 +5,41 @@
 @layer base {
   
 
-  .text-color { @apply text-gray-500;}
+  .text-default { @apply text-gray-500;}
+  .text-basic { @apply text-emerald-500;}
+  .text-error { @apply text-rose-600;}
 
-  .button-basic { @apply text-white bg-teal-400 hover:bg-teal-500 p-2 rounded-full;}
-  .button-default { @apply text-white bg-gray-400 hover:bg-gray-500 p-2 rounded-full;}
-  .button-delete { @apply text-rose-800 bg-rose-300 hover:bg-rose-400 p-2 rounded-full;}
-  .button-edit { @apply text-blue-800 bg-blue-300 hover:bg-blue-400 p-2 rounded-full;}
+  .bg-basic { @apply bg-emerald-500;}
+  .bg-default { @apply bg-gray-100;}
+
+  .hover-default { @apply hover:bg-gray-200;}
+  .hover-basic { @apply hover:bg-emerald-700;}
+  .hover-basic-alternative { @apply hover:bg-emerald-200;}
+
+  .border-default { @apply border-gray-400;}
+
+  .button-basic { @apply text-white bg-emerald-500 hover:bg-emerald-700 p-2 rounded-full;}
+  .button-default { @apply text-white bg-gray-500 hover:bg-gray-600 p-2 rounded-full;}
+  /*.button-delete { @apply text-white bg-rose-500 hover:bg-rose-700 p-2 rounded-full;*/
+  .button-delete { @apply text-white bg-emerald-500 hover:bg-emerald-700 p-2 rounded-full;}
+  .button-basic-sky { @apply text-white bg-sky-500 hover:bg-sky-700 p-2 rounded-full;}
+  .button-edit { @apply text-white bg-emerald-500 hover:bg-emerald-700 p-2 rounded-full;}
+  .button-basic-alternative { @apply text-emerald-500 bg-white hover:bg-emerald-100 border-emerald-500 border-2 p-2 rounded-full;}
 
   .arrow { @apply text-2xl;}
 
-  .input-field { @apply shadow border rounded p-2 bg-gray-100 border-gray-300 leading-tight focus:outline-none cursor-pointer;}
-  .inputAuth { @apply w-full shadow border-2 rounded p-2 bg-gray-100 border-gray-300 leading-tight focus:outline-none cursor-pointer;}
+  .input-field { @apply shadow border rounded p-2 bg-default border-default leading-tight focus:outline-none cursor-pointer;}
+  .inputAuth { @apply w-full shadow border-2 rounded p-2 bg-default border-default leading-tight focus:outline-none cursor-pointer;}
   
+  .grid-category { @apply grid [grid-template-columns:10%_40%_20%_10%_10%_10%] items-center justify-between;}
+  .grid-document { @apply grid [grid-template-columns:10%_40%_30%_10%_10%] items-center justify-between;}
+  .grid-recyclebin { @apply grid [grid-template-columns:10%_35%_25%_10%_10%_10%] items-center justify-between;}
 
+  .row-properties { @apply rounded-lg border p-1 pl-2 cursor-pointer bg-white hover-basic-alternative ;}
+  .column-default-header { @apply inline-flex font-semibold text-default cursor-pointer;}
+  .column-default-header-active { @apply inline-flex font-semibold text-basic cursor-pointer;}
 
+  .search-filter-div { @apply w-full px-2 p-1 border rounded-lg bg-white flex items-center;}
 
   /*removes arrow from input field with type number*/
   /* Chrome, Safari, Edge, Opera */

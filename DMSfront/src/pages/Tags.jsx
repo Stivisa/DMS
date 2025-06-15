@@ -9,6 +9,7 @@ import ModalDelete from "../components/modal/DeleteModal";
 import { handleRequestErrorAlert } from "../utils/errorHandlers";
 import InfoModal from "../components/modal/InfoModal";
 import SearchFilter from "../components/SearchFilter";
+import ErrorMessages from "../components/ErrorMessages";
 
 const Tags = () => {
   const [filteredTags, setFilteredTags] = useState([]);
@@ -30,18 +31,18 @@ const Tags = () => {
 
   const getTags = useCallback(async () => {
     try {
-        const response = await userRequest.get("tags");
-        setTags(response.data);
-        setFilteredTags(response.data);
+      const response = await userRequest.get("tags");
+      setTags(response.data);
+      setFilteredTags(response.data);
     } catch (err) {
-        handleRequestErrorAlert(err);
-        setErrors({ message: err.response?.data?.error});
+      handleRequestErrorAlert(err);
+      setErrors({ message: err.response?.data?.error });
     }
-  },[]);
+  }, []);
 
   useEffect(() => {
-      getTags();
-      document.title = "TAGOVI";
+    getTags();
+    document.title = "TAGOVI";
   }, [getTags]);
 
   //link from product passing url id
@@ -57,14 +58,14 @@ const Tags = () => {
   const deleteTag = useCallback(async () => {
     if (selectedTagDelete) {
       await userRequest
-          .delete("tags/" + selectedTagDelete._id)
-          .then(() => {
-            getTags();
-          })
-          .catch(function (err) {
-            handleRequestErrorAlert(err);
-            setErrors({ message: err.response?.data?.error});
-          });
+        .delete("tags/" + selectedTagDelete._id)
+        .then(() => {
+          getTags();
+        })
+        .catch(function (err) {
+          handleRequestErrorAlert(err);
+          setErrors({ message: err.response?.data?.error });
+        });
       setChoiceModalDelete(false);
     }
   }, [selectedTagDelete, getTags]);
@@ -95,27 +96,29 @@ const Tags = () => {
       await userRequest
         .put("tags/" + selectedTagEdit._id, {
           name: name,
-        }).then(() => {
+        })
+        .then(() => {
           setName("");
           setSelectedTagEdit(null);
           getTags();
         })
         .catch(function (err) {
           handleRequestErrorAlert(err);
-          setErrors({ message: err.response?.data?.error});
+          setErrors({ message: err.response?.data?.error });
         });
       setSelectedTagEdit(null);
     } else {
       await userRequest
         .post("tags", {
           name: name,
-        }).then(() => {
+        })
+        .then(() => {
           setName("");
           getTags();
         })
         .catch(function (err) {
           handleRequestErrorAlert(err);
-          setErrors({ message: err.response?.data?.error});
+          setErrors({ message: err.response?.data?.error });
         });
     }
   }
@@ -130,7 +133,7 @@ const Tags = () => {
         (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
       );
     }
-    setSortBy('createdAt');
+    setSortBy("createdAt");
     setSortOrder(!sortOrder);
   }
 
@@ -140,7 +143,7 @@ const Tags = () => {
     } else {
       filteredTags.sort((a, b) => (b.name > a.name ? 1 : -1));
     }
-    setSortBy('name');
+    setSortBy("name");
     setSortOrder(!sortOrder);
   }
 
@@ -161,28 +164,29 @@ const Tags = () => {
     {
       icon: <AiFillEdit size={20} title="Izmeni" />,
       text: "Izmeni tag",
-      buttonClass: "edit"
+      buttonClass: "edit",
     },
     {
       icon: <AiFillDelete size={20} title="Obriši" />,
       text: "Obriši tag",
-      buttonClass: "delete"
-    }
+      buttonClass: "delete",
+    },
   ];
 
   const sectionsFilter = [
     {
       onChange: filterByName,
+      title: "Naziv",
       placeholder: "Filter naziv",
-      type: "text"
-    }
+      type: "text",
+    },
   ];
 
   return (
     <>
-      <div className="px-2 py-1 border-2 border-gray-400 rounded-lg bg-white">
-      <div className="w-full flex justify-between items-center">
-        <h1 className="text-xl text-color font-bold">TAGOVI</h1>
+      <div className="px-2 py-1 border-2 border-default rounded-lg bg-white">
+        <div className="w-full flex justify-between items-center">
+          <h1 className="text-xl text-default font-bold">TAGOVI</h1>
           <div className="flex items-center">
             <p
               onClick={() => {
@@ -190,83 +194,83 @@ const Tags = () => {
               }}
               className="cursor-pointer"
             >
-              <BsInfoCircle  title="Informacije" className="text-color text-2xl" />
+              <BsInfoCircle
+                title="Informacije"
+                className="text-default text-2xl"
+              />
             </p>
           </div>
         </div>
         <form onSubmit={saveTag}>
           <div className="my-1 flex items-center w-full">
-              <input
-                className="input-field w-1/4"
-                type="text"
-                value={name}
-                placeholder="Naziv novog taga"
-                onChange={(ev) => setName(ev.target.value)}
-              />
-              <div className="flex ml-1">
-                <button
-                  type="submit"
-                  className="button-basic"
-                >
-                  {selectedTagEdit ? `Izmeni` : "Kreiraj"}
-                </button>
-                <button
-                  key={selectedTagEdit?._id}
-                  className="button-default ml-1"
-                  type="button"
-                  onClick={() => {
-                    setSelectedTagEdit(null);
-                    setName("");
-                    setErrors({});
-                  }}
-                >
-                  Otkaži
-                </button>
-              </div>        
-          </div>
-          {Object.keys(errors).length > 0 && (
-            <div className="text-rose-600 ml-1">
-              {Object.keys(errors).map((key) => (
-                <p key={key}>{errors[key]}</p>
-              ))}
+            <input
+              className="input-field w-1/4"
+              type="text"
+              value={name}
+              placeholder="Naziv novog taga"
+              onChange={(ev) => setName(ev.target.value)}
+            />
+            <div className="flex ml-1">
+              <button type="submit" className="button-basic">
+                {selectedTagEdit ? `Izmeni` : "Kreiraj"}
+              </button>
+              <button
+                key={selectedTagEdit?._id}
+                className="button-default ml-1"
+                type="button"
+                onClick={() => {
+                  setSelectedTagEdit(null);
+                  setName("");
+                  setErrors({});
+                }}
+              >
+                Otkaži
+              </button>
             </div>
-          )}
+          </div>
+          <ErrorMessages errors={errors} />
         </form>
       </div>
+      <div className="search-filter-div">
       <SearchFilter sections={sectionsFilter} />
+      </div>
       <div className="grid grid-cols-3 items-center justify-between pl-2">
         <div>
-          <span className={
-            sortBy === 'name'
-              ? 'inline-flex font-semibold text-teal-400 cursor-pointer'
-              : 'inline-flex font-semibold text-gray-800 cursor-pointer'
-          }
-          onClick={() => {
-            sortingName();
-          }}>
-          Naziv
-          { sortBy === 'name' && sortOrder ? (
-            <BiSolidDownArrowAlt className="arrow" />
-          ) : (
-            <BiSolidUpArrowAlt className="arrow" />
-          )}
+          <span
+            className={
+              sortBy === "name"
+                ? "inline-flex font-semibold text-teal-400 cursor-pointer"
+                : "inline-flex font-semibold text-gray-800 cursor-pointer"
+            }
+            onClick={() => {
+              sortingName();
+            }}
+          >
+            Naziv
+            {sortBy === "name" && sortOrder ? (
+              <BiSolidDownArrowAlt className="arrow" />
+            ) : (
+              <BiSolidUpArrowAlt className="arrow" />
+            )}
           </span>
         </div>
         <div>
-          <span className={
-            sortBy === 'createdAt'
-              ? 'inline-flex font-semibold text-teal-400 cursor-pointer'
-              : 'inline-flex font-semibold text-gray-800 cursor-pointer'
-          }
-          onClick={() => {
-            sortingCreatedAt();
-          }}
-          >Kreirano
-          {sortBy === 'createdAt' && sortOrder ? (
-            <BiSolidDownArrowAlt className="arrow" />
-          ) : (
-            <BiSolidUpArrowAlt className="arrow" />
-          )}
+          <span
+            className={
+              sortBy === "createdAt"
+                ? "inline-flex font-semibold text-teal-400 cursor-pointer"
+                : "inline-flex font-semibold text-gray-800 cursor-pointer"
+            }
+            onClick={() => {
+              sortingCreatedAt();
+            }}
+          >
+            Kreirano
+            {sortBy === "createdAt" && sortOrder ? (
+              <BiSolidDownArrowAlt className="arrow" />
+            ) : (
+              <BiSolidUpArrowAlt className="arrow" />
+            )}
           </span>
         </div>
       </div>
@@ -275,14 +279,14 @@ const Tags = () => {
           {filteredTags.map((tag, id) => (
             <li
               key={id}
-              className={`rounded-lg border p-1 pl-2 grid grid-cols-3 items-center justify-between cursor-pointer ${tag._id === selectedTagEdit?._id ? 'bg-teal-200' : 'bg-white hover:bg-gray-50'}`}
+              className={`rounded-lg border p-1 pl-2 grid grid-cols-3 items-center justify-between cursor-pointer ${tag._id === selectedTagEdit?._id ? "bg-teal-200" : "bg-white hover:bg-gray-50"}`}
               onDoubleClick={() => {
                 setSelectedTagEdit(tag);
                 setName(tag.name);
                 setErrors({});
               }}
-            >          
-              <p>{tag.name}</p>
+            >
+              <p className="truncate">{tag.name}</p>
               <p className="hidden sm:flex">
                 {date.format(new Date(tag.createdAt), "DD-MM-YYYY ")}
               </p>
@@ -304,7 +308,7 @@ const Tags = () => {
                     setSelectedTagDelete(tag);
                   }}
                 >
-                  <AiFillDelete size={20} title="Obriši"/>
+                  <AiFillDelete size={20} title="Obriši" />
                 </button>
               </div>
             </li>
@@ -320,9 +324,9 @@ const Tags = () => {
       )}
       {modalOnInfo && (
         <InfoModal
-        onClose={() => setModalOnInfo(false)}
-        sections={sectionsInfo}
-      />
+          onClose={() => setModalOnInfo(false)}
+          sections={sectionsInfo}
+        />
       )}
     </>
   );

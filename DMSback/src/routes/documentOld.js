@@ -1,95 +1,103 @@
+//NOT USING, OLD FILE
 const mongoose = require("mongoose");
 const checkDiskSpace = require("check-disk-space").default;
 const Document = require("../models/Document");
+const { getDmsFolderPath, deleteFile } = require("../utils/storage");
 const {
-  getDmsFolderPath,
-  deleteFile,
-} = require("../utils/storage");
-const { verifyToken, verifyTokenAndAdmin } = require("../middlewares/verifyToken");
+  verifyToken,
+  verifyTokenAndAdmin,
+} = require("../middlewares/verifyToken");
 const fs = require("node:fs");
-const path = require('path');
-const formidable = require('formidable');
-const fse = require('fs-extra');
+const path = require("path");
+const formidable = require("formidable");
+const fse = require("fs-extra");
 const router = require("express").Router();
-const archiver = require('archiver');
+const archiver = require("archiver");
 
 // CREATE
 // POST endpoint for uploading folder/file and form data
-router.post('/', verifyTokenAndAdmin, async (req, res) => {
+router.post("/", verifyTokenAndAdmin, async (req, res) => {
   const form = new formidable.IncomingForm();
   form.multiples = true; // Allow multiple file uploads
-  form.uploadDir = path.join(getDmsFolderPath(), 'otpremljeni'); // Temp directory for uploads
+  form.uploadDir = path.join(getDmsFolderPath(), "otpremljeni"); // Temp directory for uploads
   const result = {};
   let saveFolderPath;
-    form.parse(req, async (err, fields, files) => {
-        //console.log('fields: ', fields);
-        //console.log('files: ', files);
-        if (err) {
-          return res.status(500).json(err.message);
+  form.parse(req, async (err, fields, files) => {
+    //console.log('fields: ', fields);
+    //console.log('files: ', files);
+    if (err) {
+      return res.status(500).json(err.message);
+    }
+    try {
+      for (const key in fields) {
+        if (Array.isArray(fields[key]) && fields[key].length === 1) {
+          const value = fields[key][0];
+          if (value !== "undefined" && value !== "") {
+            result[key] = value;
+          }
         }
-        try{                 
-            for (const key in fields) {
-              if (Array.isArray(fields[key]) && fields[key].length === 1) {
-                const value = fields[key][0];
-                if (value !== 'undefined' && value !== '') {
-                  result[key] = value;
-                }
-              } 
-            }
-            const folderName = fields.folderName ? fields.folderName[0] : null;
-            if (folderName){
-              saveFolderPath = folderName ? path.join(getDmsFolderPath(), folderName) : null;
-              if (!fs.existsSync(saveFolderPath)) {
-                fs.mkdirSync(saveFolderPath);
-              } else {
-                throw new Error(`Postoji folder sa ovim imenom.`);
-              }
-            }
-            let totalSize = 0;
-            let singleFilePath = '';
-            if (files.files) {
-              // Handle single and multiple file uploads
-              const uploadedFiles = Array.isArray(files.files) ? files.files : [files.files];
-              uploadedFiles.forEach(file => {
-                const oldPath = file.filepath;
-                const newPath = path.join(getDmsFolderPath(), file.originalFilename);
-                singleFilePath = newPath;
-                totalSize += file.size;
-                fs.rename(oldPath, newPath, function (err) {
-                  if (err) throw err;              
-                });
-              });
-            }
-            result.filePath = folderName ? saveFolderPath : singleFilePath;
-            const totalSizeInMB = (totalSize / (1024 * 1024)).toFixed(2);
-            if (totalSizeInMB !== result.fileSize) {
-              throw new Error('Velicina poslatog fajla se ne poklapa sa velicinom primljenog fajla.');
-            }
-            const newDocument = new Document(result);
-            newDocument.createdByUser = req.user.id;
-            savedDocument = await newDocument.save();
+      }
+      const folderName = fields.folderName ? fields.folderName[0] : null;
+      if (folderName) {
+        saveFolderPath = folderName
+          ? path.join(getDmsFolderPath(), folderName)
+          : null;
+        if (!fs.existsSync(saveFolderPath)) {
+          fs.mkdirSync(saveFolderPath);
+        } else {
+          throw new Error(`Postoji folder sa ovim imenom.`);
+        }
+      }
+      let totalSize = 0;
+      let singleFilePath = "";
+      if (files.files) {
+        // Handle single and multiple file uploads
+        const uploadedFiles = Array.isArray(files.files)
+          ? files.files
+          : [files.files];
+        uploadedFiles.forEach((file) => {
+          const oldPath = file.filepath;
+          const newPath = path.join(getDmsFolderPath(), file.originalFilename);
+          singleFilePath = newPath;
+          totalSize += file.size;
+          fs.rename(oldPath, newPath, function (err) {
+            if (err) throw err;
+          });
+        });
+      }
+      result.filePath = folderName ? saveFolderPath : singleFilePath;
+      const totalSizeInMB = (totalSize / (1024 * 1024)).toFixed(2);
+      if (totalSizeInMB !== result.fileSize) {
+        throw new Error(
+          "Velicina poslatog fajla se ne poklapa sa velicinom primljenog fajla.",
+        );
+      }
+      const newDocument = new Document(result);
+      newDocument.createdByUser = req.user.id;
+      savedDocument = await newDocument.save();
 
-            res.status(200).json(savedDocument);      
-        }catch(err){
-          if (result.filePath) {
-            try {
-              fse.remove(result.filePath);
-            } catch (deleteErr) {
-              console.error("Error deleting folder:", deleteErr);
-            }
-          }
-          if (err.code === 11000) { // MongoDB duplicate key error
-            err.message = "Ime vec postoji. Ime mora biti jedinstveno!";
-          }
-          res.status(510).json(err.message);
+      res.status(200).json(savedDocument);
+    } catch (err) {
+      if (result.filePath) {
+        try {
+          fse.remove(result.filePath);
+        } catch (deleteErr) {
+          console.error("Error deleting folder:", deleteErr);
         }
-    });
+      }
+      if (err.code === 11000) {
+        // MongoDB duplicate key error
+        err.message = "Ime vec postoji. Ime mora biti jedinstveno!";
+      }
+      res.status(510).json(err.message);
+    }
+  });
 });
 
 //UPDATE
 router.put("/:id", verifyToken, async (req, res) => {
   try {
-    Object.keys(req.body.requestBody).forEach(key => {
+    Object.keys(req.body.requestBody).forEach((key) => {
       if (req.body.requestBody[key] === "") {
         req.body.requestBody[key] = null;
       }
@@ -115,7 +123,7 @@ router.put("/recycle/:id", verifyToken, async (req, res) => {
     oldPath = req.body.filePath;
     const directory = path.dirname(oldPath);
     const filename = path.basename(oldPath);
-    const newPath = path.join(directory, 'obrisani', filename);
+    const newPath = path.join(directory, "obrisani", filename);
     if (fs.existsSync(newPath)) {
       throw new Error("Fajl vec postoji medju privremeno obrisanima!");
     }
@@ -127,7 +135,12 @@ router.put("/recycle/:id", verifyToken, async (req, res) => {
     const updatedDocument = await Document.findByIdAndUpdate(
       req.params.id,
       {
-        $set: { isDeleted: true, deletedAt: new Date(), lastUpdatedByUser: req.user.id , filePath: newPath},
+        $set: {
+          isDeleted: true,
+          deletedAt: new Date(),
+          lastUpdatedByUser: req.user.id,
+          filePath: newPath,
+        },
       },
       { new: true },
     );
@@ -157,7 +170,12 @@ router.put("/restore/:id", verifyToken, async (req, res) => {
     const updatedDocument = await Document.findByIdAndUpdate(
       req.params.id,
       {
-        $set: { isDeleted: false, deletedAt: null, astUpdatedByUser: req.user.id , filePath: newPath},
+        $set: {
+          isDeleted: false,
+          deletedAt: null,
+          astUpdatedByUser: req.user.id,
+          filePath: newPath,
+        },
       },
       { new: true },
     );
@@ -217,7 +235,7 @@ router.get("/", verifyToken, async (req, res) => {
 
     if (qCategory) {
       query.category = { $eq: new mongoose.Types.ObjectId(qCategory) };
-    } 
+    }
     if (qTag) {
       query.tags = { $in: [qTag] };
     }
@@ -227,22 +245,21 @@ router.get("/", verifyToken, async (req, res) => {
       query.createdAt = { $gte: startDate, $lt: endDate };
     }
     if (qName) {
-      query.name = { $regex: qName, $options: 'i' }; // Case-insensitive regex search
+      query.name = { $regex: qName, $options: "i" }; // Case-insensitive regex search
     }
 
     const sortOptions = {};
-    sortOptions.createdAt = qSortCreatedAt === 'true' ? -1 : 1;
-    sortOptions.name = qSortName === 'true' ? -1 : 1;
-   
-    if (qArchiveBook === 'true') {
+    sortOptions.createdAt = qSortCreatedAt === "true" ? -1 : 1;
+    sortOptions.name = qSortName === "true" ? -1 : 1;
+
+    if (qArchiveBook === "true") {
       documents = await Document.find(query)
         .sort(sortOptions)
         .populate("category");
-  
-        res.status(200).json({
-          data: documents,
-        });
 
+      res.status(200).json({
+        data: documents,
+      });
     } else {
       count = await Document.countDocuments(query);
 
@@ -251,18 +268,18 @@ router.get("/", verifyToken, async (req, res) => {
         .skip((page - 1) * limit)
         .limit(limit)
         .populate("category");
-  
-        res.status(200).json({
-          page,
-          limit,
-          totalDocuments: count,
-          totalPages: Math.ceil(count / limit),
-          data: documents,
-        });
+
+      res.status(200).json({
+        page,
+        limit,
+        totalDocuments: count,
+        totalPages: Math.ceil(count / limit),
+        data: documents,
+      });
     }
-    } catch (err) {
-      res.status(500).json(err);
-    }
+  } catch (err) {
+    res.status(500).json(err);
+  }
 });
 
 //GET ALL from recycle bin
@@ -302,17 +319,19 @@ router.get("/file/download", verifyToken, async (req, res) => {
       return res.status(404).json({ message: "File not found" });
     }
 
-    res.setHeader('Content-Disposition', `attachment; filename="${path.basename(filePath)}"`);
-    res.setHeader('Content-Type', 'application/octet-stream');
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${path.basename(filePath)}"`,
+    );
+    res.setHeader("Content-Type", "application/octet-stream");
 
     const readStream = fs.createReadStream(filePath);
     readStream.pipe(res);
 
-    readStream.on('error', (err) => {
+    readStream.on("error", (err) => {
       console.error("Error reading file:", err);
       res.status(510).json("Error reading file");
     });
-
   } catch (err) {
     res.status(510).json(err);
   }
@@ -323,14 +342,17 @@ router.get("/folder/:id", verifyToken, async (req, res) => {
     const document = await Document.findById(req.params.id);
     const folderPath = document.filePath; // Assuming you store the folder path in your document model
 
-    res.setHeader('Content-Disposition', `attachment; filename="${path.basename(folderPath)}.zip"`);
-    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${path.basename(folderPath)}.zip"`,
+    );
+    res.setHeader("Content-Type", "application/zip");
 
-    const archive = archiver('zip', {
-      zlib: { level: 9 } // Sets the compression level
+    const archive = archiver("zip", {
+      zlib: { level: 9 }, // Sets the compression level
     });
 
-    archive.on('error', (err) => {
+    archive.on("error", (err) => {
       throw err;
     });
 
@@ -342,7 +364,6 @@ router.get("/folder/:id", verifyToken, async (req, res) => {
 
     // Finalize the archive (this will send the file)
     archive.finalize();
-
   } catch (err) {
     console.error("Error creating ZIP file:", err);
     res.status(500).json({ message: "Error creating ZIP file" });
@@ -361,10 +382,10 @@ router.get("/folder-contents/:id", verifyToken, async (req, res) => {
       }
 
       // Map file names to their full paths
-      const fileDetails = files.map(file => {
+      const fileDetails = files.map((file) => {
         return {
           name: file,
-          path: path.join(folderPath, file)
+          path: path.join(folderPath, file),
         };
       });
 

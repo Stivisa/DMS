@@ -1,3 +1,4 @@
+//NOT USED
 import { React, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { userRequest } from "../utils/requestMethods";
@@ -19,7 +20,7 @@ export default function Login() {
 
   return (
     <div className="grid grid-cols-1  h-screen w-full">
-      <div className="bg-gray-100 flex flex-col justify-center">
+      <div className="bg-default flex flex-col justify-center">
         <form className="max-w-[400px] w-full mx-auto bg-white p-4">
           <h2 className="text-4xl font-bold text-center py-6">COMPANY NAME</h2>
           <div className="flex flex-col py-2">

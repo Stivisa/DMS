@@ -1,11 +1,11 @@
 const fs = require("node:fs");
-const fse = require('fs-extra');
+const fse = require("fs-extra");
 const path = require("path");
 
 let dmsFolderPath;
 
 const setDmsFolderPath = (disk) => {
-  dmsFolderPath = path.join(disk + ':', 'DMS');
+  dmsFolderPath = path.join(disk + ":", "DMS");
   try {
     if (!fs.existsSync(dmsFolderPath)) {
       fse.mkdirSync(dmsFolderPath);
@@ -23,17 +23,29 @@ const getDmsCompanyFolderPath = (companyFolder) => {
   return companyFolderPath;
 };
 const getDmsUploadFolderPath = (companyFolderPath) => {
-  const uploadFolderPath = path.join(dmsFolderPath, companyFolderPath, 'otpremljeni');
+  const uploadFolderPath = path.join(
+    dmsFolderPath,
+    companyFolderPath,
+    "otpremljeni",
+  );
   return uploadFolderPath;
 };
 
 const getDmsRecycleFolderPath = (companyFolderPath) => {
-  const recycleFolderPath = path.join(dmsFolderPath, companyFolderPath, 'obrisani');
+  const recycleFolderPath = path.join(
+    dmsFolderPath,
+    companyFolderPath,
+    "obrisani",
+  );
   return recycleFolderPath;
 };
 
 const getDmsReportFolderPath = (companyFolderPath) => {
-  const reportFolderPath = path.join(dmsFolderPath, companyFolderPath, 'izvestaji');
+  const reportFolderPath = path.join(
+    dmsFolderPath,
+    companyFolderPath,
+    "izvestaji",
+  );
   return reportFolderPath;
 };
 
@@ -46,10 +58,13 @@ const createCompanyFolders = (companyFolderName) => {
     getDmsReportFolderPath(companyFolderName),
   ];
 
-  return Promise.all(folders.map(folder => fse.mkdir(folder, { recursive: true })))
-    .catch(err => {
-      throw new Error(`Error creating folders for company ${companyFolderName}: ${err.message}`);
-    });
+  return Promise.all(
+    folders.map((folder) => fse.mkdir(folder, { recursive: true })),
+  ).catch((err) => {
+    throw new Error(
+      `Error creating folders for company ${companyFolderName}: ${err.message}`,
+    );
+  });
 };
 
 const deleteFile = async (filePath) => {

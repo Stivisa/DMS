@@ -18,5 +18,5 @@ const companySlice = createSlice({
     },
   },
 });
-export const { setCompany, resetCompany, setOnlyOne} = companySlice.actions;
+export const { setCompany, resetCompany, setOnlyOne } = companySlice.actions;
 export default companySlice.reducer;

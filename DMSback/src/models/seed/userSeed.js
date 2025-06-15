@@ -6,8 +6,11 @@ dotenv.config();
 
 const seedData = [
   new User({
-    username: "vilazubor",
-    password: CryptoJS.AES.encrypt("vilazubor2022", process.env.PASS_SEC).toString(),
+    username: "superadmin",
+    password: CryptoJS.AES.encrypt(
+      "adminsuper",
+      process.env.PASS_SEC,
+    ).toString(),
     isAdmin: true,
     superAdmin: true,
   }),
@@ -16,81 +19,13 @@ const seedData = [
     password: CryptoJS.AES.encrypt("admin", process.env.PASS_SEC).toString(),
     isAdmin: true,
   }),
+  /*
   new User({
     username: "user1",
     password: CryptoJS.AES.encrypt("user1", process.env.PASS_SEC).toString(),
     isAdmin: false,
   }),
-  new User({
-    username: "user2",
-    password: CryptoJS.AES.encrypt("user2", process.env.PASS_SEC).toString(),
-    isAdmin: false,
-  }),
-  new User({
-    username: "user3",
-    password: CryptoJS.AES.encrypt("user3", process.env.PASS_SEC).toString(),
-    isAdmin: false,
-  }),
-  new User({
-    username: "user4",
-    password: CryptoJS.AES.encrypt("user4", process.env.PASS_SEC).toString(),
-    isAdmin: false,
-  }),
-  new User({
-    username: "user5",
-    password: CryptoJS.AES.encrypt("user5", process.env.PASS_SEC).toString(),
-    isAdmin: false,
-  }),
-  new User({
-    username: "user6",
-    password: CryptoJS.AES.encrypt("user6", process.env.PASS_SEC).toString(),
-    isAdmin: false,
-  }),
-  new User({
-    username: "user7",
-    password: CryptoJS.AES.encrypt("user5", process.env.PASS_SEC).toString(),
-    isAdmin: false,
-  }),
-  new User({
-    username: "user8",
-    password: CryptoJS.AES.encrypt("user5", process.env.PASS_SEC).toString(),
-    isAdmin: false,
-  }),
-  new User({
-    username: "user9",
-    password: CryptoJS.AES.encrypt("user5", process.env.PASS_SEC).toString(),
-    isAdmin: false,
-  }),
-  new User({
-    username: "user10",
-    password: CryptoJS.AES.encrypt("user5", process.env.PASS_SEC).toString(),
-    isAdmin: false,
-  }),
-  new User({
-    username: "user11",
-    password: CryptoJS.AES.encrypt("user5", process.env.PASS_SEC).toString(),
-    isAdmin: false,
-  }),
-  new User({
-    username: "user12",
-    password: CryptoJS.AES.encrypt("user5", process.env.PASS_SEC).toString(),
-    isAdmin: false,
-  }),
-  new User({
-    username: "user13",
-    password: CryptoJS.AES.encrypt("user5", process.env.PASS_SEC).toString(),
-    isAdmin: false,
-  }),
-  new User({
-    username: "user14",
-    password: CryptoJS.AES.encrypt("user5", process.env.PASS_SEC).toString(),
-    isAdmin: false,
-  }),
-  new User({
-    username: "user15",
-    password: CryptoJS.AES.encrypt("user5", process.env.PASS_SEC).toString(),
-    isAdmin: false,
-  }),
+  */
 ];
 
 const seedUsers = async () => {

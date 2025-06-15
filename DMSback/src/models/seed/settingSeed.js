@@ -3,7 +3,7 @@ const Setting = require("../Setting");
 const seedData = [
   new Setting({
     name: "brojSaglasnosti",
-    value: '11223344',
+    value: "",
   }),
 ];
 

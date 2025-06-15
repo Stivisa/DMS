@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { userRequest } from "../utils/requestMethods";
 import { handleRequestErrorAlert } from "../utils/errorHandlers";
 import { PiEye, PiEyeSlash } from "react-icons/pi";
+import ErrorMessages from "../components/ErrorMessages";
 
 export default function Password() {
   const [oldpassword, setOldPassword] = useState("");
@@ -20,7 +21,8 @@ export default function Password() {
     const errors = {};
     if (!oldpassword) errors.oldpassword = "Stara šifra je obavezna!";
     if (!newpassword) errors.newpassword = "Nova šifra je obavezna!";
-    if (!confirmpassword) errors.newpasswordconfirm = "Potvrda nove šifre je obavezna!";
+    if (!confirmpassword)
+      errors.newpasswordconfirm = "Potvrda nove šifre je obavezna!";
     return errors;
   };
 
@@ -34,11 +36,11 @@ export default function Password() {
     }
 
     if (newpassword !== confirmpassword) {
-      setErrors({ message: "Nova i potvrda nove šifre nisu iste!"});
+      setErrors({ message: "Nova i potvrda nove šifre nisu iste!" });
       return;
     }
     if (newpassword === oldpassword) {
-      setErrors({ message: "Nova i stara šifra su iste!"});
+      setErrors({ message: "Nova i stara šifra su iste!" });
       return;
     }
 
@@ -52,7 +54,7 @@ export default function Password() {
       })
       .catch(function (err) {
         handleRequestErrorAlert(err);
-        setErrors({ message: err.response?.data?.error});
+        setErrors({ message: err.response?.data?.error });
       });
   };
 
@@ -66,10 +68,10 @@ export default function Password() {
             <div className="flex items-center w-full relative">
               <input
                 className="inputAuth pr-10"
-                type={showOldPassword ? 'text' : 'password'}
+                type={showOldPassword ? "text" : "password"}
                 onChange={(e) => setOldPassword(e.target.value)}
               />
-              
+
               <button
                 type="button"
                 className="absolute right-0 p-3 m-0"
@@ -88,10 +90,10 @@ export default function Password() {
             <div className="flex items-center w-full relative">
               <input
                 className="inputAuth pr-10"
-                type={showNewPassword ? 'text' : 'password'}
+                type={showNewPassword ? "text" : "password"}
                 onChange={(e) => setNewPassword(e.target.value)}
               />
-              
+
               <button
                 type="button"
                 className="absolute right-0 p-3 m-0"
@@ -110,10 +112,10 @@ export default function Password() {
             <div className="flex items-center w-full relative">
               <input
                 className="inputAuth pr-10"
-                type={showConfirmPassword ? 'text' : 'password'}
+                type={showConfirmPassword ? "text" : "password"}
                 onChange={(e) => setConfirmPassword(e.target.value)}
               />
-              
+
               <button
                 type="button"
                 className="absolute right-0 p-3 m-0"
@@ -129,19 +131,13 @@ export default function Password() {
           </div>
           <button
             onClick={handleClick}
-            className="button-basic w-full mt-5 py-2 text-xl font-semibold rounded-md" 
+            className="button-basic w-full mt-5 py-2 text-xl font-semibold rounded-md"
           >
             Promeni šifru
           </button>
         </form>
         <div className="h-24 max-w-[400px] items-center justify-center">
-        {Object.keys(errors).length > 0 && (
-            <div className="text-rose-600 ml-1">
-              {Object.keys(errors).map((key) => (
-                <p key={key}>{errors[key]}</p>
-              ))}
-            </div>
-          )}
+          <ErrorMessages errors={errors} />
         </div>
       </div>
     </div>

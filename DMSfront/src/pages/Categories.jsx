@@ -1,10 +1,9 @@
 import React, { useEffect, useState, useCallback } from "react";
-import {
-  BiSolidDownArrowAlt,
-  BiSolidUpArrowAlt,
-} from "react-icons/bi";
+import { useSearchParams } from "react-router-dom";
+import { BiSolidDownArrowAlt, BiSolidUpArrowAlt } from "react-icons/bi";
 import { BsInfoCircle } from "react-icons/bs";
 import { AiFillDelete, AiFillEdit } from "react-icons/ai";
+import { IoMdAddCircle } from "react-icons/io";
 import { userRequest } from "../utils/requestMethods";
 import date from "date-and-time";
 import ModalDelete from "../components/modal/DeleteModal";
@@ -12,6 +11,8 @@ import { handleRequestErrorAlert } from "../utils/errorHandlers";
 import { useSelector } from "react-redux";
 import InfoModal from "../components/modal/InfoModal";
 import SearchFilter from "../components/SearchFilter";
+import ErrorMessages from "../components/ErrorMessages";
+import CategoryFormModal from "./CategoryFormModal";
 
 const Categories = () => {
   const [filteredCategories, setFilteredCategories] = useState([]);
@@ -19,11 +20,10 @@ const Categories = () => {
   const [selectedCategoryDelete, setSelectedCategoryDelete] = useState(null);
   const [modalOnDelete, setModalOnDelete] = useState(false);
   const [choiceModalDelete, setChoiceModalDelete] = useState(false);
-  const [name, setName] = useState("");
-  const [label, setLabel] = useState("");
-  const [selectedCategoryEdit, setSelectedCategoryEdit] = useState(null);
   const [modalOnInfo, setModalOnInfo] = useState(false);
   const [consentNumber, setConsentNumber] = useState("");
+
+  const [searchParams] = useSearchParams(); // Get query parameters, when you click link in documentForm
 
   const [sortBy, setSortBy] = useState(null);
   const [sortOrder, setSortOrder] = useState(true);
@@ -33,19 +33,30 @@ const Categories = () => {
 
   const [errors, setErrors] = useState({});
 
-  const [keepYears, setKeepYears] = useState(0);
-  const [keepMonths, setKeepMonths] = useState(0);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [currentCategory, setCurrentCategory] = useState(null);
 
   const getCategories = useCallback(async () => {
     try {
-        const response = await userRequest.get("categories");
-        setCategories(response.data);
-        setFilteredCategories(response.data);
+      const response = await userRequest.get("categories");
+      setCategories(response.data);
+      setFilteredCategories(response.data);
+
+      // Check if categoryId exists in query parameters
+      const categoryId = searchParams.get("categoryId");
+      if (categoryId) {
+        const category = response.data.find((cat) => cat._id === categoryId);
+        if (category) {
+          setCurrentCategory(category);
+          setIsModalOpen(true); // Open the modal
+        }
+      }
+
     } catch (err) {
-        handleRequestErrorAlert(err);
-        setErrors({ message: err.response?.data?.error});
+      handleRequestErrorAlert(err);
+      setErrors({ message: err.response?.data?.error });
     }
-  },[]);
+  }, [searchParams]);
 
   const getConsentNumber = useCallback(async () => {
     await userRequest
@@ -54,8 +65,8 @@ const Categories = () => {
         setConsentNumber(response.data.value);
       })
       .catch(function (err) {
-          handleRequestErrorAlert(err);
-          setErrors({ message: err.response?.data?.error});
+        handleRequestErrorAlert(err);
+        setErrors({ message: err.response?.data?.error });
       });
   }, []);
 
@@ -65,7 +76,7 @@ const Categories = () => {
       await userRequest.put("settings/consentnumber", { value: consentNumber });
     } catch (err) {
       handleRequestErrorAlert(err);
-      setErrors({ message: err.response?.data?.error});
+      setErrors({ message: err.response?.data?.error });
     }
   };
 
@@ -73,19 +84,19 @@ const Categories = () => {
     getCategories();
     getConsentNumber();
     document.title = "KATEGORIJE";
-  }, [getConsentNumber,getCategories]);
+  }, [getConsentNumber, getCategories]);
 
   const deleteCategory = useCallback(async () => {
     if (selectedCategoryDelete) {
       await userRequest
-          .delete("categories/" + selectedCategoryDelete._id)
-          .then(() => {
-            getCategories();
-          })
-          .catch(function (err) {
-            handleRequestErrorAlert(err);
-            setErrors({ message: err.response?.data?.error});
-          });
+        .delete("categories/" + selectedCategoryDelete._id)
+        .then(() => {
+          getCategories();
+        })
+        .catch(function (err) {
+          handleRequestErrorAlert(err);
+          setErrors({ message: err.response?.data?.error });
+        });
       setChoiceModalDelete(false);
     }
   }, [selectedCategoryDelete, getCategories]);
@@ -96,66 +107,15 @@ const Categories = () => {
     }
   }, [choiceModalDelete, deleteCategory]);
 
-  const validateForm = () => {
-    const errors = {};
-    if (!name.trim()) errors.name = "Naziv kategorije je obavezan!";
-    if (!label.trim()) errors.label = "Oznaka kategorije je obavezna!";
-    //if (!keepPeriod) errors.keepPeriod = "Rok čuvanja kategorije je obavezan!";
-    if (keepYears < 0 || keepMonths < 0) {
-      errors.keepPeriodNegative = "Godine i meseci ne mogu biti negativni!";
-    }
-    if (keepMonths > 12) {
-      errors.keepPeriodMonths = "Meseci moraju biti između 1 i 12!";
-    }
-    return errors;
+  const handleOpenModal = (category = null) => {
+    setCurrentCategory(category);
+    setIsModalOpen(true);
   };
 
-  async function saveDocument(ev) {
-    ev.preventDefault();
-    setErrors({});
-    const errors = validateForm();
-    if (Object.keys(errors).length > 0) {
-      setErrors(errors);
-      return;
-    }
-    if (selectedCategoryEdit) {
-      //editing
-      await userRequest.put("categories/" + selectedCategoryEdit._id, {
-        name,
-        label,
-        keepYears,
-        keepMonths,
-      }).then(() => {
-        setName("");
-        setLabel("");
-        setKeepYears(0);
-        setKeepMonths(0);
-        setSelectedCategoryEdit(null);
-        getCategories();
-      })
-      .catch(function (err) {
-        handleRequestErrorAlert(err);
-        setErrors({ message: err.response?.data?.error});
-      });
-    } else {
-      await userRequest.post("categories", {
-        name,
-        label,
-        keepYears,
-        keepMonths,
-      }).then(() => {
-        setName("");
-        setLabel("");
-        setKeepYears(0);
-        setKeepMonths(0);
-        getCategories();
-      })
-      .catch(function (err) {
-        handleRequestErrorAlert(err);
-        setErrors({ message: err.response?.data?.error});
-      });
-    }
-  }
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setCurrentCategory(null);
+  };
 
   function sortingCreatedAt() {
     if (!sortOrder) {
@@ -167,7 +127,7 @@ const Categories = () => {
         (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
       );
     }
-    setSortBy('createdAt');
+    setSortBy("createdAt");
     setSortOrder(!sortOrder);
   }
 
@@ -177,7 +137,7 @@ const Categories = () => {
     } else {
       filteredCategories.sort((a, b) => (b.name > a.name ? 1 : -1));
     }
-    setSortBy('name');
+    setSortBy("name");
     setSortOrder(!sortOrder);
   }
 
@@ -187,7 +147,17 @@ const Categories = () => {
     } else {
       filteredCategories.sort((a, b) => (b.label > a.label ? 1 : -1));
     }
-    setSortBy('label');
+    setSortBy("label");
+    setSortOrder(!sortOrder);
+  }
+
+  function sortingSerialNumber() {
+    if (!sortOrder) {
+      filteredCategories.sort((a, b) => a.serialNumber - b.serialNumber);
+    } else {
+      filteredCategories.sort((a, b) => b.serialNumber - a.serialNumber);
+    }
+    setSortBy("serialNumber");
     setSortOrder(!sortOrder);
   }
 
@@ -208,32 +178,42 @@ const Categories = () => {
     {
       icon: <AiFillEdit size={20} title="Izmeni" />,
       text: "Izmeni kategoriju",
-      buttonClass: "edit"
+      buttonClass: "edit",
     },
     {
       icon: <AiFillDelete size={20} title="Obriši" />,
       text: "Obriši kategoriju",
-      buttonClass: "delete"
+      buttonClass: "delete",
     },
     {
-      header : "Rok čuvanja iz liste kategorija",
+      header: "Rok čuvanja iz liste kategorija",
       text: "unosi se broj godina i/ili meseci (inače podrazumevano trajno)",
-    }
+    },
+    {
+      header: "Oznaka",
+      text: "opciono polje, zavisi od usvojene klasifikacije. Treba odlučiti da li je obavezno i onda popunjavati za sve, u tom slučaju arhivska knjiga sadrzi oznaku, inače se navodi redni broj.",
+    },
   ];
 
   const sectionsFilter = [
     {
       onChange: filterByName,
+      title: "Naziv",
       placeholder: "Filter naziv",
-      type: "text"
-    }
+      type: "text",
+    },
   ];
 
   return (
     <>
-      <div className="px-2 py-1 border-2 border-gray-400 rounded-lg bg-white">
+      <div className="px-2 py-1 border-2 border-default rounded-lg bg-white">
         <div className="w-full flex justify-between items-center">
-          <h1 className="text-xl text-color font-bold">KATEGORIJE</h1>
+          <div className="flex items-center">
+          <h1 className="text-xl text-default font-bold">KATEGORIJE</h1>
+          <button className="button-basic flex items-center ml-1" onClick={() => handleOpenModal()}>
+            <IoMdAddCircle className="mr-1 text-xl"/>Dodaj
+          </button>
+        </div>
           <div className="flex items-center">
             <p className="italic">
               Broj saglasnosti na listu kategorija:
@@ -245,7 +225,14 @@ const Categories = () => {
                 disabled={!isAdmin}
                 onChange={(ev) => setConsentNumber(ev.target.value)}
               />
-              {isAdmin && <button onClick={() => updateConsentNumber()} className="button-basic ml-1 p-1">Snimi</button>}
+              {isAdmin && (
+                <button
+                  onClick={() => updateConsentNumber()}
+                  className="button-basic ml-1 p-1"
+                >
+                  Snimi
+                </button>
+              )}
             </p>
             <p
               onClick={() => {
@@ -253,131 +240,87 @@ const Categories = () => {
               }}
               className="cursor-pointer ml-1"
             >
-              <BsInfoCircle  title="Informacije" className="text-color text-2xl" />
+              <BsInfoCircle
+                title="Informacije"
+                className="text-default text-2xl"
+              />
             </p>
           </div>
         </div>
-        <form onSubmit={saveDocument}>
-        <div className="my-0 flex items-center w-full">
-              <input
-                className="input-field w-1/4"
-                type="text"
-                value={name}
-                placeholder="Naziv kategorije"
-                onChange={(ev) => setName(ev.target.value)}
-              />
-              <input
-                className="input-field w-1/12 ml-1"
-                type="text"
-                value={label}
-                placeholder="Oznaka"
-                onChange={(ev) => setLabel(ev.target.value)}
-              />
-              <div className="flex ml-1">
-                <button
-                  type="submit"
-                  className="button-basic"
-                >
-                  {selectedCategoryEdit ? `Izmeni` : "Kreiraj"}
-                </button>
-                <button
-                  key={selectedCategoryEdit?._id}
-                  className="button-default ml-1"
-                  type="button"
-                  onClick={() => {
-                    setSelectedCategoryEdit(null);
-                    setName("");
-                    setLabel("");
-                    setKeepYears(0);
-                    setKeepMonths(0);
-                    setErrors({});
-                  }}
-                >
-                  Otkaži
-                </button>
-              </div>  
-          </div>
-          <div className="mt-1 flex items-center"> 
-              <label className="text-color">Rok čuvanja (podrazumevano trajno):</label>
-              <input
-                className="input-field w-1/12 ml-1"
-                type="number"
-                value={keepYears === 0 ? '' : keepYears}
-                placeholder="Broj godina"
-                onChange={(ev) => setKeepYears(ev.target.value)}
-              />  
-              <input
-                className="input-field w-1/12 ml-1"
-                type="number"
-                value={keepMonths === 0 ? '' : keepMonths}
-                placeholder="Broj meseci"
-                onChange={(ev) => setKeepMonths(ev.target.value)}
-              />  
-          </div>
-          {Object.keys(errors).length > 0 && (
-            <div className="text-rose-600 ml-1">
-              {Object.keys(errors).map((key) => (
-                <p key={key}>{errors[key]}</p>
-              ))}
-            </div>
-          )}
-        </form>
+        <ErrorMessages errors={errors} />
       </div>
-      <SearchFilter sections={sectionsFilter} />
-      <div className="grid grid-cols-5 items-center justify-between pl-2">
-        <div>
-          <span className={
-            sortBy === 'name'
-              ? 'inline-flex font-semibold text-teal-400 cursor-pointer'
-              : 'inline-flex font-semibold text-gray-800 cursor-pointer'
+      <div className="search-filter-div">
+        <SearchFilter sections={sectionsFilter} />
+      </div>
+      <div className="grid-category pl-2">
+        <div
+          className={
+            sortBy === "serialNumber"
+              ? "column-default-header-active"
+              : "column-default-header"
+          }
+          onClick={() => {
+            sortingSerialNumber();
+          }}
+        >
+          Redni br.
+          {sortBy === "serialNumber" && !sortOrder ? (
+            <BiSolidDownArrowAlt className="arrow" />
+          ) : (
+            <BiSolidUpArrowAlt className="arrow" />
+          )}
+        </div>
+        <div
+          className={
+            sortBy === "name"
+              ? "column-default-header-active"
+              : "column-default-header"
           }
           onClick={() => {
             sortingName();
-          }}>
+          }}
+        >
           Naziv
-          { sortBy === 'name' && sortOrder ? (
+          {sortBy === "name" && sortOrder ? (
             <BiSolidDownArrowAlt className="arrow" />
           ) : (
             <BiSolidUpArrowAlt className="arrow" />
           )}
-          </span>
         </div>
-        <div>
-          <span className={
-            sortBy === 'label'
-              ? 'inline-flex font-semibold text-teal-400 cursor-pointer'
-              : 'inline-flex font-semibold text-gray-800 cursor-pointer'
+        <div
+          className={
+            sortBy === "label"
+              ? "column-default-header-active"
+              : "column-default-header"
           }
           onClick={() => {
             sortingLabel();
-          }}>
+          }}
+        >
           Oznaka
-          { sortBy === 'label' && sortOrder ? (
+          {sortBy === "label" && sortOrder ? (
             <BiSolidDownArrowAlt className="arrow" />
           ) : (
             <BiSolidUpArrowAlt className="arrow" />
           )}
-          </span>
         </div>
-        <div className="inline-flex font-semibold text-gray-800 cursor-pointer">
-          Rok čuvanja
-        </div>
-        <div>
-          <span className={
-            sortBy === 'createdAt'
-              ? 'inline-flex font-semibold text-teal-400 cursor-pointer'
-              : 'inline-flex font-semibold text-gray-800 cursor-pointer'
+        <div className="column-default-header">Rok čuvanja</div>
+        <div
+          className={
+            sortBy === "createdAt"
+              ? "column-default-header-active"
+              : "column-default-header"
           }
           onClick={() => {
             sortingCreatedAt();
           }}
-          >Kreirano
-          {sortBy === 'createdAt' && sortOrder ? (
+        >
+          Kreirano
+          {sortBy === "createdAt" && sortOrder ? (
             <BiSolidDownArrowAlt className="arrow" />
           ) : (
             <BiSolidUpArrowAlt className="arrow" />
           )}
-          </span>
         </div>
       </div>
       <div className="overflow-y-auto h-[calc(100vh-280px)]">
@@ -385,44 +328,37 @@ const Categories = () => {
           {filteredCategories.map((category, id) => (
             <li
               key={id}
-              className={`rounded-lg border p-1 pl-2 grid grid-cols-5 items-center justify-between cursor-pointer ${category._id === selectedCategoryEdit?._id ? 'bg-teal-200' : 'bg-white hover:bg-gray-50'}`}
+              className={"row-properties grid-category"}
               onDoubleClick={() => {
-                setSelectedCategoryEdit(category);
-                setName(category.name);
-                setLabel(category.label ?? '');
-                setKeepYears(category.keepYears ?? 0);
-                setKeepMonths(category.keepMonths ?? 0);
                 setErrors({});
+                handleOpenModal(category)
               }}
-            >              
-              <p>{category.name}</p>
-              <p className="hidden sm:flex items-center">
-                {category.label}
-              </p>
-              <p className="hidden sm:flex">
+            >
+              <p className="px-1">{category.serialNumber}.</p>
+              <p className="px-1 truncate">{category.name}</p>
+              <p className="hidden sm:flex px-1 truncate">{category.label}</p>
+              <p className="hidden sm:flex px-1">
                 {category.keepPeriod === 0
-                  ? 'trajno'
-                  : `${category.keepYears ? category.keepYears + ' god.' : ''}${
-                      category.keepMonths ? ' ' + category.keepMonths + ' mes.' : ''
+                  ? "trajno"
+                  : `${category.keepYears ? category.keepYears + " god." : ""}${
+                      category.keepMonths
+                        ? " " + category.keepMonths + " mes."
+                        : ""
                     }`}
               </p>
-              <p className="hidden sm:flex">
+              <p className="hidden sm:flex px-1">
                 {date.format(new Date(category.createdAt), "DD-MM-YYYY ")}
               </p>
               <div className="flex ml-auto">
                 <button
                   className={"button-edit"}
                   onClick={() => {
-                    setSelectedCategoryEdit(category);
-                    setName(category.name);
-                    setLabel(category.label);
-                    setKeepYears(category.keepYears);
-                    setKeepMonths(category.keepMonths);
                     setErrors({});
+                    handleOpenModal(category)
                   }}
                   title="Izmeni"
                 >
-                  <AiFillEdit size={20}/>
+                  <AiFillEdit size={20} />
                 </button>
                 <button
                   className={"button-delete ml-1"}
@@ -432,13 +368,19 @@ const Categories = () => {
                   }}
                   title="Obriši"
                 >
-                  <AiFillDelete size={20} title="Obriši"/>
+                  <AiFillDelete size={20} title="Obriši" />
                 </button>
               </div>
             </li>
           ))}
         </ul>
       </div>
+      <CategoryFormModal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        getCategories={getCategories}
+        category={currentCategory}
+      />
       {modalOnDelete && (
         <ModalDelete
           setModalOn={setModalOnDelete}
@@ -448,9 +390,9 @@ const Categories = () => {
       )}
       {modalOnInfo && (
         <InfoModal
-        onClose={() => setModalOnInfo(false)}
-        sections={sectionsInfo}
-      />
+          onClose={() => setModalOnInfo(false)}
+          sections={sectionsInfo}
+        />
       )}
     </>
   );

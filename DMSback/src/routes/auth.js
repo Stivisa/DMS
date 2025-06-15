@@ -21,13 +21,26 @@ router.post("/register", verifyToken, async (req, res) => {
     const { password, ...others } = savedUser._doc;
     res.status(200).json(others);
   } catch (err) {
-    if (err.code === 11000 && err.keyPattern.username) { // MongoDB duplicate key error
-        res.status(400).json({ error: "Korisničko ime postoji. Korisničko ime mora biti jedinstveno!", code: "USERNAME_DUPLICATE" });
-    } else{
+    if (err.code === 11000 && err.keyPattern.username) {
+      // MongoDB duplicate key error
+      res
+        .status(400)
+        .json({
+          error:
+            "Korisničko ime postoji. Korisničko ime mora biti jedinstveno!",
+          code: "USERNAME_DUPLICATE",
+        });
+    } else {
       // Generalna poruka greške za frontend ako nije prepoznata specifična vrsta greške. Dok pravu gresku pisemo u logger.
-      logger.error("Error register user:", err)
-      res.status(500).json({ error: "Došlo je do greške prilikom registracije korisnika.", code: "GENERIC_ERROR" });
+      logger.error("Error register user:", err);
+      res
+        .status(500)
+        .json({
+          error: "Došlo je do greške prilikom registracije korisnika.",
+          code: "GENERIC_ERROR",
+        });
     }
+    return;
   }
 });
 
@@ -66,9 +79,15 @@ router.post("/login", async (req, res) => {
     if (err instanceof CustomError) {
       res.status(400).json({ error: err.message, code: err.code });
     } else {
-      logger.error("Error login user:", err)
-      res.status(500).json({ error: "Došlo je do greške prilikom prijavljivanja korisnika.", code: "GENERIC_ERROR" });
+      logger.error("Error login user:", err);
+      res
+        .status(500)
+        .json({
+          error: "Došlo je do greške prilikom prijavljivanja korisnika.",
+          code: "GENERIC_ERROR",
+        });
     }
+    return;
   }
 });
 

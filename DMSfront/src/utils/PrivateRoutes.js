@@ -16,15 +16,15 @@ const PrivateRoutes = () => {
 
   return user ? (
     <>
-    <div>
-    <Navbar onResetActiveLink={handleResetActiveLink} />
-    </div>
-    <div className="flex">
-    <Sidebar activeLink={activeLink} setActiveLink={setActiveLink} />
-      <div className="w-full mx-1 my-1">
-        <Outlet/>
+      <div>
+        <Navbar onResetActiveLink={handleResetActiveLink} />
       </div>
-    </div>
+      <div className="flex">
+        <Sidebar activeLink={activeLink} setActiveLink={setActiveLink} />
+        <div className="w-full mx-1 my-1">
+          <Outlet />
+        </div>
+      </div>
     </>
   ) : (
     <Navigate to="/login" />

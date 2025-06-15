@@ -2,21 +2,31 @@ const mongoose = require("mongoose");
 const DocumentBase = require("./DocumentBase");
 const AutoIncrement = require("mongoose-sequence")(mongoose);
 
-const createDocumentDuplicateModel = async (duplicateCollectionName) => {
-
-  //kljucno jer pri praznoj db, model se kreira i mongooose ga vidi. 
-  //Pri sledecem pokretanju kolekcije vec postoje i model se ne kreira, pa ga mongoose ni ne kreira.
-  //Ovako ako postoji vrati postojeci ako ne kreiraj, pa model  uvek postoji.
+//Pri sledecem pokretanju kolekcije vec postoje i model se ne kreira, pa ga mongoose ni ne kreira.
+//Ovako ako postoji vrati postojeci ako ne kreiraj, pa model  uvek postoji.
+//mora create ipak, jer server kad se restartuje pogubi modele
+const getDocumentModel = (duplicateCollectionName) => {
   if (mongoose.models[duplicateCollectionName]) {
-    //console.log(`Model ${duplicateCollectionName} already exists`);
     return mongoose.models[duplicateCollectionName];
   }
+}
 
-  const DuplicateDocumentSchema = new mongoose.Schema(
-    DocumentBase.obj,
-    { timestamps: true, collection: duplicateCollectionName },
-  );
+//kljucno jer pri praznoj db, model se kreira i mongooose ga vidi.
+const createDocumentDuplicateModel = async (duplicateCollectionName) => {
   
+  //console.log("mongoose models", mongoose.models);
+  if (mongoose.models[duplicateCollectionName]) {
+    //console.log("Model already exists:", duplicateCollectionName);
+    return mongoose.models[duplicateCollectionName];
+  }
+  //console.log("Creating model:", duplicateCollectionName);
+
+  const DuplicateDocumentSchema = new mongoose.Schema(DocumentBase.obj, {
+    timestamps: true,
+    collection: duplicateCollectionName,
+  });
+
+  /*
   DuplicateDocumentSchema.plugin(AutoIncrement, {
     id: duplicateCollectionName,
     inc_field: "serialNumber",
@@ -48,9 +58,12 @@ const createDocumentDuplicateModel = async (duplicateCollectionName) => {
     }
     next();
   });
-  
-  
-  const DuplicateDocument  = mongoose.model(duplicateCollectionName, DuplicateDocumentSchema);
+  */
+
+  const DuplicateDocument = mongoose.model(
+    duplicateCollectionName,
+    DuplicateDocumentSchema,
+  );
 
   /*
   try {
@@ -67,6 +80,6 @@ const createDocumentDuplicateModel = async (duplicateCollectionName) => {
   */
 
   return DuplicateDocument;
-}
+};
 
-module.exports = {createDocumentDuplicateModel};
+module.exports = { createDocumentDuplicateModel, getDocumentModel };

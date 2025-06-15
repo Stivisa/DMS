@@ -24,7 +24,9 @@ const DocumentEdit = () => {
         alert(err.response?.data?.error);
       });
   }, [id]);
-  return <div>{document && <DocumentForm {...document} errors={errors}/>}</div>;
+  return (
+    <div>{document && <DocumentForm {...document} errors={errors} />}</div>
+  );
 };
 
 export default DocumentEdit;
