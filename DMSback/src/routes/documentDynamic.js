@@ -16,7 +16,6 @@ const formidable = require("formidable");
 const fse = require("fs-extra");
 const router = require("express").Router();
 const archiver = require("archiver");
-const {getDocumentModel, createDocumentDuplicateModel } = require("../models/documentDynamic");
 const { generatePdf } = require("../utils/archiveBook");
 const { generateExpiredReport } = require("../utils/expiredReport");
 const Setting = require("../models/Setting");
@@ -217,7 +216,7 @@ router.put("/restore/:id", verifyTokenAndUser, async (req, res) => {
       const directory = path.dirname(path.dirname(oldPath));
       const filename = path.basename(oldPath);
 
-      newFilePath = path.join("otpremljeni", filename);
+      newFilePath = path.join("arhiva", filename);
       newPath = path.join(directory, newFilePath);
       if (fs.existsSync(newPath)) {
         res
@@ -991,7 +990,7 @@ const handleFileUploads = async (files, uploadDir, folderName) => {
   let singleFilePath = null;
   let saveFolderPath = null;
   if (folderName) {
-    saveFolderPath = path.join("otpremljeni", folderName);
+    saveFolderPath = path.join("arhiva", folderName);
     const createFolderPath = path.join(
       uploadDir,
       saveFolderPath,
@@ -1018,7 +1017,7 @@ const handleFileUploads = async (files, uploadDir, folderName) => {
   await Promise.all(
     uploadedFiles.map(async (file) => {
       const oldPath = file.filepath;
-      singleFilePath = path.join("otpremljeni", file.originalFilename); //otpremljeni/(folder name if present)/filename
+      singleFilePath = path.join("arhiva", file.originalFilename); //otpremljeni/(folder name if present)/filename
       const newPath = path.join(uploadDir, singleFilePath);
 
       if (fs.existsSync(newPath)) {

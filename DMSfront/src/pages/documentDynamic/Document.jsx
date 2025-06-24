@@ -623,7 +623,7 @@ const DocumentDynamic = () => {
         <DeleteModal
           setModalOn={setModalOnDelete}
           setChoice={setChoiceModalDelete}
-          modalMessage={`Da li želite obrisati dokument: ${selectedDocumentDelete.name}?`}
+          modalMessage={`Da li želite obrisati sa sadržajem: ${selectedDocumentDelete.content}?`}
         />
       )}
       {modalOnDeleteExpired && (

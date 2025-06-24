@@ -26,7 +26,7 @@ const getDmsUploadFolderPath = (companyFolderPath) => {
   const uploadFolderPath = path.join(
     dmsFolderPath,
     companyFolderPath,
-    "otpremljeni",
+    "arhiva",
   );
   return uploadFolderPath;
 };

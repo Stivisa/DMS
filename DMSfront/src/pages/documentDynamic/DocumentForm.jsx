@@ -96,8 +96,8 @@ const DocumentForm = ({
   const navigate = useNavigate();
 
   useEffect(() => {
-    document.title = name ? "Dokument " + name : "Dodaj dokument";
-  }, [name]);
+    document.title = content ? "Dokument " + content : "Dodaj dokument";
+  }, [content]);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -1126,14 +1126,14 @@ const DocumentForm = ({
         <DeleteModal
           setModalOn={setModalOnRecycle}
           setChoice={setChoiceModalRecycle}
-          modalMessage={`Da li želite obrisati dokument: ${name}?`}
+          modalMessage={`Da li želite obrisati dokument sa sadržajem: ${content}?`}
         />
       )}
       {modalOnRestore && (
         <DeleteModal
           setModalOn={setModalOnRestore}
           setChoice={setChoiceModalRestore}
-          modalMessage={`Da li želite vratiti dokument: ${name}?`}
+          modalMessage={`Da li želite vratiti dokument sa sadržajem: ${content}?`}
           color="green"
         />
       )}
@@ -1141,7 +1141,7 @@ const DocumentForm = ({
         <DeleteModal
           setModalOn={setModalOnDelete}
           setChoice={setChoiceModalDelete}
-          modalMessage={`Da li želite obrisati dokument: ${name}?`}
+          modalMessage={`Da li želite obrisati dokument sa sadržajem: ${content}?`}
         />
       )}
     </>

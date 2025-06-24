@@ -349,7 +349,14 @@ const RecycleBin = () => {
             >
               <p>{document.serialNumber}.</p>
               <p className="truncate">{document.content}</p>
-              <p className="px-1 truncate">{`${document.category[0]?.serialNumber}.${document.category[0]?.name}`}</p>
+              <p className="px-1 truncate">
+                {document.categories.map((category, index) => (
+                  <span key={index} className="px-1 truncate">
+                    {`${category.serialNumber}.${category.name}`}
+                    {index < document.categories.length - 1 && ", "}
+                  </span>
+                ))}
+              </p>
               <p className="hidden sm:flex">
                 {date.format(new Date(document.createdAt), "DD-MM-YYYY ")}
               </p>
@@ -389,7 +396,7 @@ const RecycleBin = () => {
         <DeleteModal
           setModalOn={setModalOnRecycle}
           setChoice={setChoiceModalRestore}
-          modalMessage={`Da li želite vratiti dokument: ${selectedDocumentDelete.name}?`}
+          modalMessage={`Da li želite vratiti dokument sa sadržajem: ${selectedDocumentDelete.content}?`}
           color="green"
         />
       )}
@@ -397,7 +404,7 @@ const RecycleBin = () => {
         <DeleteModal
           setModalOn={setModalOnDelete}
           setChoice={setChoiceModalDelete}
-          modalMessage={`Da li želite obrisati dokument: ${selectedDocumentDelete.name}?`}
+          modalMessage={`Da li želite obrisati dokument sa sadržajem: ${selectedDocumentDelete.content}?`}
         />
       )}
       {modalOnInfo && (
