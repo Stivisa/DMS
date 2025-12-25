@@ -87,7 +87,7 @@ const DocumentForm = ({
   //fileName je ime.ekstenzija sacuvanog fajla na serveru
   const [fileName] = useState(filePath?.split("\\").pop() || "");
   //fileExt je ekstenzija sacuvanog fajl, a ne trenutno ucitanog za otpremanje
-  const fileExtension = filePath.includes(".") ? filePath.split(".").pop() : "";
+  const fileExtension = filePath.includes(".") ? filePath.split(".").pop().toLowerCase() : "";
   const [fileExt] = useState(fileExtension);
 
   const [showModalFolderContent, setShowModalFolderContent] = useState(false);

@@ -84,7 +84,7 @@ const ModalFolderContent = ({ show, handleClose, files, folderId }) => {
                     <FiDownload className="text-2xl" />
                     Preuzmi
                   </button>
-                  {file.name.endsWith(".pdf") && (
+                  {file.name.toLowerCase().endsWith(".pdf") && (
                     <button
                       className="button-basic bg-sky-500 hover:bg-sky-700 items-center flex justify-center"
                       onClick={() => handlePreviewFile(file)}

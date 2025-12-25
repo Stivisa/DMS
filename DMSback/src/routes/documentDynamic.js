@@ -458,9 +458,10 @@ router.get("/file/download", verifyTokenAndUser, async (req, res) => {
       throw new CustomError("Nije pronadjen fajl.", "FILE_NOT_FOUND");
     }
 
+    const fileName = path.basename(filePath);
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename="${path.basename(filePath)}"`,
+      createContentDisposition(fileName),
     );
     res.setHeader("Content-Type", "application/octet-stream");
 
@@ -504,7 +505,7 @@ router.get("/folder/:id", verifyTokenAndUser, async (req, res) => {
 
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename="${path.basename(folderPath)}.zip"`,
+      createContentDisposition(`${path.basename(folderPath)}.zip`),
     );
     res.setHeader("Content-Type", "application/zip");
 
@@ -640,7 +641,7 @@ publicRouter.get("/report/:filename", (req, res) => {
 
     // Set headers to serve the file
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `inline; filename="${filename}"`);
+    res.setHeader("Content-Disposition", createContentDisposition(filename, 'inline'));
 
     // Stream the file to the client
     const fileStream = fs.createReadStream(filepath);
@@ -1111,5 +1112,12 @@ function getQueryParams(req) {
     sortBy: req.query.sortBy,
   };
 }
+
+// Helper function to create safe Content-Disposition header with proper UTF-8 encoding
+const createContentDisposition = (filename, disposition = 'attachment') => {
+  const encodedFileName = encodeURIComponent(filename);
+  const asciiFallback = filename.replace(/[^\x00-\x7F]/g, '_');
+  return `${disposition}; filename="${asciiFallback}"; filename*=UTF-8''${encodedFileName}`;
+};
 
 module.exports = { router, publicRouter };
