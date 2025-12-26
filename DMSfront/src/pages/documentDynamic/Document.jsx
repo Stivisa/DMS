@@ -556,7 +556,10 @@ const DocumentDynamic = () => {
         }
         </div>
       </div>
-      <div className={`overflow-y-auto h-[calc(100vh-${docsListMinusHeight}px)]`}>
+      <div 
+        className="overflow-y-auto"
+        style={{ height: `calc(100vh - ${docsListMinusHeight}px)` }}
+      >
         <ul>
           {documents.map((document, id) => (
             <li
