@@ -52,7 +52,7 @@ const DocumentDynamic = () => {
   const [errors, setErrors] = useState({});
 
   var dateCopy = new Date();
-  //dateCopy.setHours(24, 0, 0, 0);
+  dateCopy.setHours(23, 59, 59, 999);
   const [searchEndDate, setSearchEndDate] = useState(dateCopy);
   dateCopy = new Date();
   dateCopy.setHours(0, 0, 0, 0);
@@ -468,14 +468,14 @@ const DocumentDynamic = () => {
           <DatePicker
             className="border-2 border-default w-24 cursor-pointer"
             selected={searchStartDate}
-            onChange={(date) => setSearchStartDate(date)}
+            onChange={(date) => { date.setHours(0, 0, 0, 0); setSearchStartDate(date); }}
             dateFormat="dd/MM/yyyy"
           />
           <label className="mx-1 text-md text-default font-bold">-</label>
           <DatePicker
             className="border-2 border-default w-24 cursor-pointer"
             selected={searchEndDate}
-            onChange={(date) => setSearchEndDate(date)}
+            onChange={(date) => { date.setHours(23, 59, 59, 999); setSearchEndDate(date); }}
             dateFormat="dd/MM/yyyy"
           />
         </div>
