@@ -14,12 +14,14 @@ const settingRoute = require("./routes/setting");
 const companyRoute = require("./routes/company");
 const documentDynamicRoute = require("./routes/documentDynamic").router;
 const documentDynamicPublicRoute = require("./routes/documentDynamic").publicRouter;
+const locationRoute = require("./routes/location");
 
 const cors = require("cors");
 const http = require("http");
 
 const { seedUsers } = require("./models/seed/userSeed");
 const { seedClients } = require("./models/seed/clientSeed");
+const { seedLocations } = require("./models/seed/locationSeed");
 const { seedTags } = require("./models/seed/tagSeed");
 const { seedCategories } = require("./models/seed/categorySeed");
 const { seedSettings } = require("./models/seed/settingSeed");
@@ -49,6 +51,7 @@ app.use("/api/document/preview", documentDynamicPublicRoute);
 app.use("/api/document", documentDynamicRoute);
 
 app.use("/api/clients", clientRoute);
+app.use("/api/locations", locationRoute);
 app.use("/api/tags", tagRoute);
 app.use("/api/categories", categoryRoute);
 app.use("/api/settings", settingRoute);
@@ -67,6 +70,7 @@ const seedDb = () => {
     //mandatory
     seedUsers();
     seedSettings();
+    seedLocations();
     //testing
     //seedTags();
     //seedCategories();

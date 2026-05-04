@@ -7,6 +7,7 @@ import { IoDocumentsOutline } from "react-icons/io5";
 import { MdOutlineDelete } from "react-icons/md";
 import { useSelector } from "react-redux";
 import { SlPeople } from "react-icons/sl";
+import { MdOutlineLocationOn } from "react-icons/md";
 
 const Sidebar = ({ activeLink, setActiveLink }) => {
   const user = useSelector((state) => state.user.currentUser);
@@ -51,6 +52,13 @@ const Sidebar = ({ activeLink, setActiveLink }) => {
           text="Kategorije"
           isActive={activeLink === "/categories"}
           onClick={() => handleLinkClick("/categories")}
+        />
+        <NavLink
+          to="/locations"
+          icon={<MdOutlineLocationOn size={35} />}
+          text="Lokacije"
+          isActive={activeLink === "/locations"}
+          onClick={() => handleLinkClick("/locations")}
         />
         <NavLink
           to="/tags"
@@ -111,7 +119,7 @@ const NavLink = ({ to, icon, text, isActive, onClick }) => {
       <li
         className={`py-1 flex flex-col items-center ${isActive ? "text-basic" : "text-default"}`}
       >
-        <div className={`hover-default rounded-full p-2`}>{icon}</div>
+        <div className={`hover-default rounded-full p-0`}>{icon}</div>
         <span className="flex-1 text-center">{text}</span>
       </li>
     </Link>

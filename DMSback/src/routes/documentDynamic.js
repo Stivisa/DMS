@@ -16,7 +16,7 @@ const formidable = require("formidable");
 const fse = require("fs-extra");
 const router = require("express").Router();
 const archiver = require("archiver");
-const { generatePdf } = require("../utils/archiveBook");
+const { generatePdfperDocument, generatePdfperCategory } = require("../utils/archiveBook");
 const { generateExpiredReport } = require("../utils/expiredReport");
 const Setting = require("../models/Setting");
 const Company = require("../models/Company");
@@ -664,10 +664,9 @@ router.get("/generate/archivebook", verifyTokenAndUser, async (req, res) => {
   try {
     const collection = req.collection;
     const companyFolder = req.companyfolder;
-    const { query, sortOptions } = generateQueryAndSortOptions(queryParams);
-    let documents;
+    const { query } = generateQueryAndSortOptions(queryParams);
 
-    documents = await collection
+    const documents = await collection
       .find(query)
       .sort({ serialNumber: 1 })
       .populate("categories");
@@ -688,13 +687,59 @@ router.get("/generate/archivebook", verifyTokenAndUser, async (req, res) => {
     }
     const companyName = company.name;
 
-    await generatePdf(
+    await generatePdfperCategory(
       documents,
       companyName,
       companyFolder,
       consentNumber,
-      queryParams.startdate,
-      queryParams.enddate,
+      res,
+    );
+  } catch (err) {
+    logger.error("Error archive book:", err);
+    res
+      .status(500)
+      .json({
+        error: "Greška prilikom generisanja arhivske knjige.",
+        code: "GENERIC_ERROR",
+      });
+    return;
+  }
+});
+
+router.get("/generate/archivebookdocuments", verifyTokenAndUser, async (req, res) => {
+  const queryParams = getQueryParams(req);
+  queryParams.expired = false; //only active documents
+  try {
+    const collection = req.collection;
+    const companyFolder = req.companyfolder;
+    const { query } = generateQueryAndSortOptions(queryParams);
+
+    const documents = await collection
+      .find(query)
+      .sort({ serialNumber: 1 })
+      .populate("categories");
+
+    const setting = await Setting.findOne({ name: "brojSaglasnosti" });
+    if (!setting) {
+      return res
+        .status(404)
+        .json({ error: "Broj saglasnosti nije pronađen.", code: "NOT_FOUND" });
+    }
+    const consentNumber = setting.value;
+
+    const company = await Company.findById(req.companyId);
+    if (!company) {
+      return res
+        .status(404)
+        .json({ error: "Kompanija nije pronađena.", code: "NOT_FOUND" });
+    }
+    const companyName = company.name;
+
+    await generatePdfperDocument(
+      documents,
+      companyName,
+      companyFolder,
+      consentNumber,
       res,
     );
   } catch (err) {

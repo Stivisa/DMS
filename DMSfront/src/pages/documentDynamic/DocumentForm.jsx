@@ -50,6 +50,7 @@ const DocumentForm = ({
   const [tags, setTags] = useState(existingTags || []);
   const [clientsAll, setClientsAll] = useState([]);
   const [client, setClient] = useState(existingClient || undefined);
+  const [locationsAll, setLocationsAll] = useState([]);
   const [yearStart, setYearStart] = useState(existingYearStart || currentYear);
   const [yearEnd, setYearEnd] = useState(existingYearEnd || undefined);
   const [physicalLocation, setPhysicalLocation] = useState(
@@ -127,8 +128,17 @@ const DocumentForm = ({
       }
     };
 
+    const fetchLocations = async () => {
+      try {
+        const response = await userRequest.get("locations");
+        setLocationsAll(response.data);
+      } catch (err) {
+        setErrors({ message: err.response?.data?.error });
+      }
+    };
+
     const fetchData = async () => {
-      await Promise.all([fetchCategories(), fetchTags(), fetchClients()]);
+      await Promise.all([fetchCategories(), fetchTags(), fetchClients(), fetchLocations()]);
     };
 
     fetchData();
@@ -959,14 +969,19 @@ const DocumentForm = ({
                   </span>
                   )
                 </label>
-                <textarea
-                  className="input-field flex h-16 w-full"
-                  spellCheck="false"
-                  placeholder="primer: prostorija 2, polica 3"
+                <select
+                  className="input-field flex w-full"
                   value={physicalLocation}
                   onChange={(ev) => setPhysicalLocation(ev.target.value)}
                   disabled={existingIsDeleted}
-                />
+                >
+                  <option value="">Izaberi lokaciju</option>
+                  {locationsAll.map((item) => (
+                    <option key={item._id} value={item.name}>
+                      {item.name}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="pb-1">
                 <label>

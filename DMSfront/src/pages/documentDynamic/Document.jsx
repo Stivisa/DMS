@@ -22,9 +22,16 @@ import LoadingModal from "../../components/modal/LoadingModal";
 import CategorySelect from "../../components/CategorySelect";
 
 const DocumentDynamic = () => {
+  const savedDocFilters = (() => {
+    try {
+      const s = sessionStorage.getItem('doc_filters');
+      return s ? JSON.parse(s) : null;
+    } catch { return null; }
+  })();
+
   const [documents, setDocuments] = useState([]);
   const [categoriesAll, setCategoriesAll] = useState([]);
-  const [searchCategory, setSearchCategory] = useState("");
+  const [searchCategory, setSearchCategory] = useState(savedDocFilters?.searchCategory ?? "");
   const [selectedDocumentDelete, setSelectedDocumentDelete] = useState(null);
   const [modalOnDelete, setModalOnDelete] = useState(false);
   const [modalOnDeleteExpired, setModalOnDeleteExpired] = useState(false);
@@ -32,15 +39,15 @@ const DocumentDynamic = () => {
   const [choiceModalDelete, setChoiceModalDelete] = useState(false);
   const [choiceModalDeleteExpired, setChoiceModalDeleteExpired] = useState(false);
 
-  const [sortBy, setSortBy] = useState(null);
-  const [sortOrder, setSortOrder] = useState(true);
+  const [sortBy, setSortBy] = useState(savedDocFilters?.sortBy ?? null);
+  const [sortOrder, setSortOrder] = useState(savedDocFilters?.sortOrder ?? true);
 
-  const [searchExpired, setSearchExpired] = useState(false);
+  const [searchExpired, setSearchExpired] = useState(savedDocFilters?.searchExpired ?? false);
 
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(savedDocFilters?.page ?? 1);
   const [limit, setLimit] = useState(12);
   const [totalPages, setTotalPages] = useState(1);
-  const [searchContent, setSearchContent] = useState("");
+  const [searchContent, setSearchContent] = useState(savedDocFilters?.searchContent ?? "");
 
   const user = useSelector((state) => state.user.currentUser);
   const isAdmin = user && user.isAdmin;
@@ -53,11 +60,15 @@ const DocumentDynamic = () => {
 
   var dateCopy = new Date();
   dateCopy.setHours(23, 59, 59, 999);
-  const [searchEndDate, setSearchEndDate] = useState(dateCopy);
+  const [searchEndDate, setSearchEndDate] = useState(
+    savedDocFilters?.searchEndDate ? new Date(savedDocFilters.searchEndDate) : dateCopy
+  );
   dateCopy = new Date();
   dateCopy.setHours(0, 0, 0, 0);
   dateCopy.setMonth(dateCopy.getMonth() - 12);
-  const [searchStartDate, setSearchStartDate] = useState(dateCopy);
+  const [searchStartDate, setSearchStartDate] = useState(
+    savedDocFilters?.searchStartDate ? new Date(savedDocFilters.searchStartDate) : dateCopy
+  );
 
   const navigate = useNavigate();
 
@@ -245,6 +256,19 @@ const DocumentDynamic = () => {
 
     fetchData();
   }, [getDocuments]);
+
+  useEffect(() => {
+    sessionStorage.setItem('doc_filters', JSON.stringify({
+      searchCategory,
+      sortBy,
+      sortOrder,
+      searchExpired,
+      page,
+      searchContent,
+      searchStartDate: searchStartDate?.toISOString(),
+      searchEndDate: searchEndDate?.toISOString(),
+    }));
+  }, [searchCategory, sortBy, sortOrder, searchExpired, page, searchContent, searchStartDate, searchEndDate]);
 
   const deleteProduct = useCallback(async () => {
     if (selectedDocumentDelete) {
@@ -449,6 +473,7 @@ const DocumentDynamic = () => {
             id="search-box"
             placeholder="Filter sadržaj"
             className="input-field ml-1"
+            value={searchContent}
             onChange={filterByContent}
           />
         </div>

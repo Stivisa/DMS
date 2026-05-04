@@ -12,6 +12,7 @@ const SearchFilter = ({ sections }) => {
             placeholder={section.placeholder}
             className="input-field ml-1"
             type={section.type}
+            value={section.value !== undefined ? section.value : undefined}
             onChange={section.onChange}
           />
         </p>

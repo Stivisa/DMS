@@ -14,21 +14,29 @@ import ErrorMessages from "../../components/ErrorMessages";
 import CategorySelect from "../../components/CategorySelect";
 
 const RecycleBin = () => {
+  const savedRecycleFilters = (() => {
+    try {
+      const s = sessionStorage.getItem('recycle_filters');
+      return s ? JSON.parse(s) : null;
+    } catch { return null; }
+  })();
+
   //showing filteredDocuments, while documents always contains all documents
   const [filteredDocuments, setFilteredDocuments] = useState([]);
   const [documents, setDocuments] = useState([]);
   const [categoriesAll, setCategoriesAll] = useState([]);
-  const [searchCategory, setSearchCategory] = useState("");
+  const [searchCategory, setSearchCategory] = useState(savedRecycleFilters?.searchCategory ?? "");
+  const [searchContent, setSearchContent] = useState(savedRecycleFilters?.searchContent ?? "");
   const [selectedDocumentDelete, setSelectedDocumentDelete] = useState(null);
   const [modalOnDelete, setModalOnDelete] = useState(false);
   const [modalOnRecycle, setModalOnRecycle] = useState(false);
   const [modalOnInfo, setModalOnInfo] = useState(false);
   const [choiceModalDelete, setChoiceModalDelete] = useState(false);
   const [choiceModalRestore, setChoiceModalRestore] = useState(false);
-  const [searchExpired, setSearchExpired] = useState(false);
+  const [searchExpired, setSearchExpired] = useState(savedRecycleFilters?.searchExpired ?? false);
 
-  const [sortBy, setSortBy] = useState(null);
-  const [sortOrder, setSortOrder] = useState(true);
+  const [sortBy, setSortBy] = useState(savedRecycleFilters?.sortBy ?? null);
+  const [sortOrder, setSortOrder] = useState(savedRecycleFilters?.sortOrder ?? true);
 
   const [errors, setErrors] = useState({});
 
@@ -106,6 +114,34 @@ const RecycleBin = () => {
     }
   }, [choiceModalRestore, restoreProduct]);
 
+  useEffect(() => {
+    let result = [...documents];
+    if (searchContent.trim().length > 0) {
+      result = result.filter((item) =>
+        item.content.toLowerCase().indexOf(searchContent.toLowerCase()) !== -1
+      );
+    }
+    if (searchCategory) {
+      result = result.filter((item) =>
+        item.categories?.some((cat) => cat._id === searchCategory)
+      );
+    }
+    if (searchExpired) {
+      result = result.filter((item) => item.expired === true);
+    }
+    setFilteredDocuments(result);
+  }, [documents, searchContent, searchCategory, searchExpired]);
+
+  useEffect(() => {
+    sessionStorage.setItem('recycle_filters', JSON.stringify({
+      searchCategory,
+      searchContent,
+      searchExpired,
+      sortBy,
+      sortOrder,
+    }));
+  }, [searchCategory, searchContent, searchExpired, sortBy, sortOrder]);
+
   function sortingOriginDate() {
     if (!sortOrder) {
       documents.sort((a, b) => new Date(a.originDate) - new Date(b.originDate));
@@ -150,41 +186,6 @@ const RecycleBin = () => {
     setSortOrder(!sortOrder);
   }
 
-  const filterByContent = (event) => {
-    const query = event.target.value;
-    if (query.trim().length === 0) {
-      setFilteredDocuments(documents);
-    } else {
-      var updatedList = [...documents];
-      updatedList = updatedList.filter((item) => {
-        return item.content.toLowerCase().indexOf(query.toLowerCase()) !== -1;
-      });
-      setFilteredDocuments(updatedList);
-    }
-  };
-
-  const filterByCategory = (event) => {
-    const selectedCategoryId = event.target.value; // The selected category ID
-    if (!selectedCategoryId || selectedCategoryId.trim().length === 0) {
-      setFilteredDocuments(documents); // Reset to all documents if no category is selected
-    } else {
-      const updatedList = documents.filter((item) => {
-        // Check if any category in the item's category array matches the selected category ID
-        return item.category.some((cat) => cat._id === selectedCategoryId);
-      });
-      setFilteredDocuments(updatedList);
-    }
-  };
-
-  const filterByExpired = (isChecked) => {
-    if (!isChecked) {
-      setFilteredDocuments(documents); // Reset to all documents if the checkbox is unchecked
-    } else {
-      const updatedList = documents.filter((item) => item.expired === true);
-      setFilteredDocuments(updatedList);
-    }
-  };
-
   const sectionsInfo = [
     {
       icon: <FaRecycle size={20} title="Vrati" />,
@@ -205,7 +206,8 @@ const RecycleBin = () => {
 
   const sectionsFilter = [
     {
-      onChange: filterByContent,
+      onChange: (e) => setSearchContent(e.target.value),
+      value: searchContent,
       title: "Sadržaj",
       placeholder: "Filter sadržaj",
       type: "text",
@@ -240,10 +242,7 @@ const RecycleBin = () => {
         <CategorySelect
           className="ml-1 w-48"
           value={searchCategory}
-          onChange={(ev) => {
-            setSearchCategory(ev.target.value); // Update the selected category
-            filterByCategory(ev); // Filter documents based on the selected category
-          }}
+          onChange={(ev) => setSearchCategory(ev.target.value)}
           options={categoriesAll}
         />
         </div>
@@ -256,11 +255,7 @@ const RecycleBin = () => {
             type="checkbox"
             checked={searchExpired}
             className="ml-1 w-5 h-5 rounded-full border-2 cursor-pointer"
-            onChange={(e) => {
-              const isChecked = e.target.checked;
-              setSearchExpired(isChecked); // Update the checkbox state
-              filterByExpired(isChecked); // Filter documents based on the expired status
-            }}
+            onChange={(e) => setSearchExpired(e.target.checked)}
           />
         </div>       
       </div>

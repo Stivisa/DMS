@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Users from "./pages/Users";
 import Clients from "./pages/Clients";
+import Locations from "./pages/Locations";
 import Login from "./pages/Login";
 import Tags from "./pages/Tags";
 import PrivateRoutes from "./utils/PrivateRoutes";
@@ -51,6 +52,7 @@ function App() {
           <Route element={<PrivateRoutes />}>
             <Route element={<DocumentDynamic />} path="/" />
             <Route element={<Clients />} path="/clients" />
+            <Route element={<Locations />} path="/locations" />
             {isAdmin && <Route element={<Users />} path="/users" />}
             <Route element={<Tags />} path="/tags" />
             <Route element={<Tags />} path="/tags/:id" />
