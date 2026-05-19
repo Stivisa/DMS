@@ -155,7 +155,7 @@ const DocumentForm = ({
       parseInt(serialNumber, 10) <= 0
     ) {
       errors.serialNumber =
-        "Redni broj dokumenta je obavezan i mora biti veći od 0!";
+        "Broj dokumenta je obavezan i mora biti veći od 0!";
     }
     if (categories.length === 0)
       errors.category = "Kategorija dokumenta je obavezna!";
@@ -829,12 +829,12 @@ const DocumentForm = ({
                 </div>
                 */}
                 <div className="py-1">
-                  <label>Redni broj*</label>
+                  <label>Broj*</label>
                   <input
                     className="input-field flex w-1/3"
                     type="number"
                     value={serialNumber}
-                    placeholder="Redni broj"
+                    placeholder="Broj"
                     onChange={(ev) => {
                       setSerialNumber(ev.target.value);
                     }}
@@ -846,7 +846,7 @@ const DocumentForm = ({
                   <textarea
                     className="input-field flex h-16 w-full"
                     spellCheck="false"
-                    placeholder="Sadržaj polje iz arhivske knjige"
+                    placeholder="Sadržaj dokumentacije"
                     value={content}
                     onChange={(ev) => setContent(ev.target.value)}
                     disabled={existingIsDeleted}

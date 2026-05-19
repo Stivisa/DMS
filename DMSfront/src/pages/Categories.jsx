@@ -191,7 +191,7 @@ const Categories = () => {
     },
     {
       header: "Oznaka",
-      text: "opciono polje, zavisi od usvojene klasifikacije. Treba odlučiti da li je obavezno i onda popunjavati za sve, u tom slučaju arhivska knjiga sadrzi oznaku, inače se navodi redni broj.",
+      text: "opciono polje, zavisi od usvojene klasifikacije. Treba odlučiti da li je obavezno i onda popunjavati za sve, u tom slučaju arhivska knjiga sadrzi oznaku, inače se navodi broj.",
     },
   ];
 
@@ -263,7 +263,7 @@ const Categories = () => {
             sortingSerialNumber();
           }}
         >
-          Redni br.
+          Broj
           {sortBy === "serialNumber" && !sortOrder ? (
             <BiSolidDownArrowAlt className="arrow" />
           ) : (

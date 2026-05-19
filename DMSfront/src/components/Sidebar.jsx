@@ -7,7 +7,7 @@ import { IoDocumentsOutline } from "react-icons/io5";
 import { MdOutlineDelete } from "react-icons/md";
 import { useSelector } from "react-redux";
 import { SlPeople } from "react-icons/sl";
-import { MdOutlineLocationOn } from "react-icons/md";
+import { MdOutlineLocationOn, MdMenuBook } from "react-icons/md";
 
 const Sidebar = ({ activeLink, setActiveLink }) => {
   const user = useSelector((state) => state.user.currentUser);
@@ -33,6 +33,14 @@ const Sidebar = ({ activeLink, setActiveLink }) => {
     setActiveLink(to);
   };
 
+  const handleArchiveBookClick = (event, to) => {
+    if (to === "/archive-book" && !companyName) {
+      alert("Niste izabrali firmu!");
+      event.preventDefault();
+    }
+    setActiveLink(to);
+  };
+
   const handleLinkClick = (to) => {
     setActiveLink(to);
   };
@@ -45,6 +53,13 @@ const Sidebar = ({ activeLink, setActiveLink }) => {
           text="Dokumenti"
           isActive={activeLink === "/document"}
           onClick={(event) => handleDocumentClick(event, "/document")}
+        />
+        <NavLink
+          to="/archive-book"
+          icon={<MdMenuBook size={35} />}
+          text="Arh. knjiga"
+          isActive={activeLink === "/archive-book"}
+          onClick={(event) => handleArchiveBookClick(event, "/archive-book")}
         />
         <NavLink
           to="/categories"

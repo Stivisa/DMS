@@ -29,7 +29,7 @@ router.post("/", verifyTokenAndAdmin, async (req, res) => {
           code: "NAME_DUPLICATE",
         });
     } else if (err.code === 11000 && err.keyPattern?.serialNumber){
-      return res.status(400).json({ error: "Redni broj dokumenta postoji. Redni broj dokumenta mora biti jedinstven!", code: "SERIALNUMBER_DUPLICATE" });
+      return res.status(400).json({ error: "Broj dokumenta postoji. Broj dokumenta mora biti jedinstven!", code: "SERIALNUMBER_DUPLICATE" });
     } else {
       logger.error("Error create category:", err);
       return res
@@ -72,7 +72,7 @@ router.put("/:id", verifyTokenAndAdmin, async (req, res) => {
           code: "NAME_DUPLICATE",
         });
     } else if (err.code === 11000 && err.keyPattern?.serialNumber){
-      return res.status(400).json({ error: "Redni broj dokumenta postoji. Redni broj dokumenta mora biti jedinstven!", code: "SERIALNUMBER_DUPLICATE" });
+      return res.status(400).json({ error: "Broj dokumenta postoji. Broj dokumenta mora biti jedinstven!", code: "SERIALNUMBER_DUPLICATE" });
     } else {
       logger.error("Error edit category:", err);
       return res

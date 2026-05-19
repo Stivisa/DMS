@@ -13,6 +13,7 @@ import Settings from "./pages/Settings";
 import Help from "./pages/Help";
 import { useSelector } from "react-redux";
 import CompaniesMenu from "./pages/CompaniesMenu";
+import ArchiveBook from "./pages/ArchiveBook";
 import DocumentDynamic from "./pages/documentDynamic/Document";
 import DocumentDynamicNew from "./pages/documentDynamic/DocumentNew";
 import DocumentDynamicEdit from "./pages/documentDynamic/DocumentEdit";
@@ -72,6 +73,7 @@ function App() {
             />
 
             <Route element={<RecycleBin />} path="/recyclebin" />
+            <Route element={<ArchiveBook />} path="/archive-book" />
 
             <Route element={<Password />} path="/password" />
             {superAdmin && <Route element={<Settings />} path="/settings" />}

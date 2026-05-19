@@ -185,7 +185,7 @@ const Locations = () => {
             />
             <div className="flex ml-1">
               <button type="submit" className="button-basic">
-                {selectedLocationEdit ? "Izmeni" : "Kreiraj"}
+                {selectedLocationEdit ? "Izmeni" : "Dodaj"}
               </button>
               <button
                 className="button-default ml-1"
@@ -254,7 +254,7 @@ const Locations = () => {
               <p className="px-1">
                 {date.format(new Date(location.createdAt), "DD-MM-YYYY")}
               </p>
-              <div className="flex">
+              <div className="flex justify-end">
                 <button
                   className="button-edit"
                   onClick={() => {

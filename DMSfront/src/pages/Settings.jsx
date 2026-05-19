@@ -140,7 +140,7 @@ const Settings = () => {
             />
             <div className="flex ml-1">
               <button type="submit" className="button-basic">
-                {selectedCompanyEdit ? `Izmeni` : "Kreiraj"}
+                {selectedCompanyEdit ? `Izmeni` : "Dodaj"}
               </button>
               <button
                 key={selectedCompanyEdit?._id}

@@ -15,6 +15,7 @@ const companyRoute = require("./routes/company");
 const documentDynamicRoute = require("./routes/documentDynamic").router;
 const documentDynamicPublicRoute = require("./routes/documentDynamic").publicRouter;
 const locationRoute = require("./routes/location");
+const archiveBookRoute = require("./routes/archiveBook");
 
 const cors = require("cors");
 const http = require("http");
@@ -56,6 +57,7 @@ app.use("/api/tags", tagRoute);
 app.use("/api/categories", categoryRoute);
 app.use("/api/settings", settingRoute);
 app.use("/api/companies", companyRoute);
+app.use("/api/archive-book", archiveBookRoute);
 
 // Health check endpoint
 app.get("/api/health", (req, res) => {

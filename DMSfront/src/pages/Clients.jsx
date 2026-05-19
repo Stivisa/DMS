@@ -207,7 +207,7 @@ const Clients = () => {
             />
             <div className="flex ml-1">
               <button type="submit" className="button-basic">
-                {selectedClientEdit ? `Izmeni` : "Kreiraj"}
+                {selectedClientEdit ? `Izmeni` : "Dodaj"}
               </button>
               <button
                 className="button-default ml-1"

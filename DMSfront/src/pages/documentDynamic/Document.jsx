@@ -1,15 +1,16 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { useSelector } from "react-redux";
+//import { useSelector } from "react-redux";
 import { AiFillDelete, AiFillEdit } from "react-icons/ai";
 import { BsInfoCircle } from "react-icons/bs";
-import { FaBookOpen } from "react-icons/fa6";
+//import { FaBookOpen } from "react-icons/fa6";
 import { ImArrowLeft, ImArrowRight } from "react-icons/im";
 import { IoMdAddCircle } from "react-icons/io";
 import {
   BiSolidDownArrowAlt,
   BiSolidUpArrowAlt,
 } from "react-icons/bi";
-import { userRequest, BASE_URL } from "../../utils/requestMethods";
+//import { userRequest, BASE_URL } from "../../utils/requestMethods";
+import { userRequest } from "../../utils/requestMethods";
 import { handleRequestErrorAlert } from "../../utils/errorHandlers";
 import DeleteModal from "../../components/modal/DeleteModal";
 import { useNavigate, Link } from "react-router-dom";
@@ -49,9 +50,9 @@ const DocumentDynamic = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [searchContent, setSearchContent] = useState(savedDocFilters?.searchContent ?? "");
 
-  const user = useSelector((state) => state.user.currentUser);
-  const isAdmin = user && user.isAdmin;
-  const superAdmin = user.superAdmin;
+  //const user = useSelector((state) => state.user.currentUser);
+  //const isAdmin = user && user.isAdmin;
+  //const superAdmin = user.superAdmin;
 
   const [loading, setLoading] = useState(false);
   const docsListMinusHeight = 235; // Height of the header and other elements above the document list
@@ -114,33 +115,33 @@ const DocumentDynamic = () => {
     }
   }, [getParams]);
 
-  const getArchiveBook = useCallback(
-    async () => {
-      const params = getParams();
-      try {
-        let loadingTimeout = setTimeout(() => {
-          setLoading(true); // Set loading state to true after 2 seconds
-        }, 2000);
-        const response = await userRequest.get(
-          "document/generate/archivebook",
-          { params},
-        );
-        clearTimeout(loadingTimeout);
+  // const getArchiveBook = useCallback(
+  //   async () => {
+  //     const params = getParams();
+  //     try {
+  //       let loadingTimeout = setTimeout(() => {
+  //         setLoading(true); // Set loading state to true after 2 seconds
+  //       }, 2000);
+  //       const response = await userRequest.get(
+  //         "document/generate/archivebook",
+  //         { params},
+  //       );
+  //       clearTimeout(loadingTimeout);
 
-         //previous solution worked with blob, but could not pass custom name
-        const folder = response.data.folder;
-        const filename = response.data.filename;
-        const publicUrl = `${BASE_URL}document/preview/report/${filename}?folder=${folder}`;
-        window.open(publicUrl, "_blank");
-      } catch (err) {
-        handleRequestErrorAlert(err);
-        setErrors({ message: err.response?.data?.error});
-      } finally {
-        setLoading(false); // Set loading state to false
-      }
-    },
-    [getParams],
-  );
+  //        //previous solution worked with blob, but could not pass custom name
+  //       const folder = response.data.folder;
+  //       const filename = response.data.filename;
+  //       const publicUrl = `${BASE_URL}document/preview/report/${filename}?folder=${folder}`;
+  //       window.open(publicUrl, "_blank");
+  //     } catch (err) {
+  //       handleRequestErrorAlert(err);
+  //       setErrors({ message: err.response?.data?.error});
+  //     } finally {
+  //       setLoading(false); // Set loading state to false
+  //     }
+  //   },
+  //   [getParams],
+  // );
 
   //button removed, query by keepDate not expired flag
   /*
@@ -164,36 +165,36 @@ const DocumentDynamic = () => {
   */
 
   //button download removed, preview now have custom name
-  const getExpiredReport = useCallback(async (preview) => {
-    const params = getParams();
-    try {
-      let loadingTimeout = setTimeout(() => {
-        setLoading(true); // Set loading state to true after 2 seconds
-      }, 2000);
-      const response = await userRequest.get(
-        "document/generate/reportexpired",
-        { params},
-      );
-      clearTimeout(loadingTimeout);
+  // const getExpiredReport = useCallback(async (preview) => {
+  //   const params = getParams();
+  //   try {
+  //     let loadingTimeout = setTimeout(() => {
+  //       setLoading(true); // Set loading state to true after 2 seconds
+  //     }, 2000);
+  //     const response = await userRequest.get(
+  //       "document/generate/reportexpired",
+  //       { params},
+  //     );
+  //     clearTimeout(loadingTimeout);
 
-         //previous solution worked with blob, but could not pass custom name
-         const folder = response.data.folder;
-         const filename = response.data.filename;
-         const publicUrl = `${BASE_URL}document/preview/report/${filename}?folder=${folder}`;
-         window.open(publicUrl, "_blank");
+  //        //previous solution worked with blob, but could not pass custom name
+  //        const folder = response.data.folder;
+  //        const filename = response.data.filename;
+  //        const publicUrl = `${BASE_URL}document/preview/report/${filename}?folder=${folder}`;
+  //        window.open(publicUrl, "_blank");
 
-        if (isAdmin || superAdmin) {
-          setTimeout(() => {
-            setModalOnDeleteExpired(true); // Set the modal for expired documents
-          }, 1000);
-        }
-    }catch (err) {
-      handleRequestErrorAlert(err);
-      setErrors({ message: err.response?.data?.error});
-    } finally {
-      setLoading(false); // Set loading state to false
-    }
-  }, [getParams, isAdmin, superAdmin]);
+  //       if (isAdmin || superAdmin) {
+  //         setTimeout(() => {
+  //           setModalOnDeleteExpired(true); // Set the modal for expired documents
+  //         }, 1000);
+  //       }
+  //   }catch (err) {
+  //     handleRequestErrorAlert(err);
+  //     setErrors({ message: err.response?.data?.error});
+  //   } finally {
+  //     setLoading(false); // Set loading state to false
+  //   }
+  // }, [getParams, isAdmin, superAdmin]);
 
   const deleteExpiredDocuments = useCallback(async () => {
     try {
@@ -419,6 +420,7 @@ const DocumentDynamic = () => {
             </Link>
           </div>
           <div className="flex items-center">
+            {/*
             <button
               className="button-basic flex items-center mr-1"
               title="Pregledaj bezvredni materijal"
@@ -433,6 +435,7 @@ const DocumentDynamic = () => {
             >
               <FaBookOpen className="mr-1 text-xl" title="Pregledaj arhivsku knjigu" /> Arhivska knjiga
             </button>
+            */}
             {/*
             <p
               onClick={() => ExportToJson()}
@@ -528,7 +531,7 @@ const DocumentDynamic = () => {
             sortingSerialNumber();
           }}
         >
-          Redni br.
+          Broj
           {sortBy === "serialNumber" && !sortOrder ? (
             <BiSolidDownArrowAlt className="arrow" />
           ) : (

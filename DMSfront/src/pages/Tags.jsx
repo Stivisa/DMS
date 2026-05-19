@@ -212,7 +212,7 @@ const Tags = () => {
             />
             <div className="flex ml-1">
               <button type="submit" className="button-basic">
-                {selectedTagEdit ? `Izmeni` : "Kreiraj"}
+                {selectedTagEdit ? `Izmeni` : "Dodaj"}
               </button>
               <button
                 key={selectedTagEdit?._id}

@@ -55,7 +55,7 @@ const CategoryFormModal = ({
     const errors = {};
     if (!name.trim()) errors.name = "Naziv kategorije je obavezan!";
     if (!serialNumber || isNaN(serialNumber) || parseInt(serialNumber, 10) <= 0) {
-      errors.serialNumber = "Redni broj je obavezan i mora biti veći od 0!";
+      errors.serialNumber = "Broj je obavezan i mora biti veći od 0!";
     }
     if (keepYears < 0 || keepMonths < 0) {
       errors.keepPeriodNegative = "Godine i meseci ne mogu biti negativni!";
@@ -116,17 +116,17 @@ const CategoryFormModal = ({
         className=" p-4 w-1/2 max-h-screen justify-center rounded-3xl shadow bg-white fixed top-1/2 left-1/2 -translate-y-1/2 -translate-x-1/2"
       >
         <div><h2 className="text-xl text-center font-bold mb-4">
-          {category ? "Izmeni Kategoriju" : "Kreiraj Kategoriju"}
+          {category ? "Izmeni Kategoriju" : "Dodaj Kategoriju"}
         </h2></div>
         
         <form onSubmit={handleSubmit}>
           <div className="mb-2">
-            <label>Redni broj*:</label>
+            <label>Broj*:</label>
             <input
               className="input-field w-full"
               type="number"
               value={serialNumber}
-              placeholder="Redni broj"
+              placeholder="Broj"
               onChange={(ev) => setSerialNumber(ev.target.value)}
             />
           </div>

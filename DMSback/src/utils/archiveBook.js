@@ -131,6 +131,21 @@ function savePdfAndRespond(documentDefinition, companyFolder, res) {
   });
 }
 
+function savePdfToFile(documentDefinition, companyFolder) {
+  return new Promise((resolve, reject) => {
+    const pdfDoc = printer.createPdfKitDocument(documentDefinition);
+    const filename = `arhivska_knjiga_${format(new Date(), "ddMMyyyy_HHmmss")}.pdf`;
+    const filePath = path.join(getDmsReportFolderPath(companyFolder), filename);
+
+    const fileStream = fs.createWriteStream(filePath);
+    pdfDoc.pipe(fileStream);
+    pdfDoc.end();
+
+    fileStream.on("finish", () => resolve(filePath));
+    fileStream.on("error", reject);
+  });
+}
+
 // ── Per-document PDF ──────────────────────────────────────────────────────────
 
 async function generatePdfperDocument(
@@ -223,22 +238,26 @@ async function generatePdfperCategory(
   consentNumber,
   res,
 ) {
-  const body = [
-    ...buildTableHeader(),
-    ...generateCategoryRows(documents),
-  ];
-
-  const documentDefinition = buildDocumentDefinition(
-    body,
-    companyName,
-    consentNumber,
-  );
+  const { tableRows } = buildCategoryRowData(documents, 1);
+  const body = [...buildTableHeader(), ...tableRows];
+  const documentDefinition = buildDocumentDefinition(body, companyName, consentNumber);
   savePdfAndRespond(documentDefinition, companyFolder, res);
 }
 
-function generateCategoryRows(documents) {
+// Returns { tableRows, structuredRows, endNumber }
+// tableRows   — pdfmake cell arrays
+// structuredRows — plain objects for ArchiveBook.rows
+// endNumber   — last assigned serial number
+function buildCategoryRowData(documents, startNumber, existingRows = null) {
+  // Preserve napomene from previous generation (matched by categoryId)
+  const napomenaMap = new Map();
+  if (existingRows) {
+    existingRows.forEach((r) => {
+      if (r.categoryId) napomenaMap.set(r.categoryId.toString(), r.napomena || "");
+    });
+  }
+
   // Group documents by category
-  //It loops through all documents and groups them by each category they belong to. If a document belongs to multiple categories, it is included in each relevant group
   const categoryMap = new Map();
   documents.forEach((doc) => {
     doc.categories.forEach((category) => {
@@ -250,8 +269,11 @@ function generateCategoryRows(documents) {
     });
   });
 
-  let counter = 1;
-  return Array.from(categoryMap.values()).map(({ category, docs }) => {
+  const tableRows = [];
+  const structuredRows = [];
+  let counter = startNumber;
+
+  Array.from(categoryMap.values()).forEach(({ category, docs }) => {
     // Latest createdAt among docs in this category
     const latestDate = docs.reduce((max, doc) => {
       const d = new Date(doc.createdAt);
@@ -277,6 +299,7 @@ function generateCategoryRows(documents) {
     const quantityParts = [];
     if (totalFileSizeMB > 0) quantityParts.push(totalFileSizeMB.toFixed(2) + " MB");
     physicalQuantities.forEach((q) => quantityParts.push(q));
+    const quantityStr = quantityParts.join(", ");
 
     // Location: "hard disk" if any digital + unique physical locations
     const hasDigital = docs.some((doc) => doc.filePath);
@@ -289,36 +312,97 @@ function generateCategoryRows(documents) {
     const locationParts = [];
     if (hasDigital) locationParts.push("hard disk");
     physicalLocations.forEach((loc) => locationParts.push(loc));
+    const locationStr = locationParts.join(", ");
 
-    return [
-      { text: counter++ + ".", style: "row", alignment: "center" },
-      {
-        text: format(latestDate, "dd.MM.yyyy"),
-        style: "row",
-        alignment: "center",
-      },
+    const keepPeriod = getKeepPeriodText(category);
+    const serialNumber = counter++;
+    const categoryId = category._id.toString();
+    const napomena = napomenaMap.get(categoryId) || "";
+
+    tableRows.push([
+      { text: serialNumber + ".", style: "row", alignment: "center" },
+      { text: format(latestDate, "dd.MM.yyyy"), style: "row", alignment: "center" },
       { text: minYearStart !== "" ? String(minYearStart) : "", style: "row", alignment: "center" },
       { text: maxYearEnd !== "" ? String(maxYearEnd) : "", style: "row", alignment: "center" },
-      {
-        text: category.label || category.serialNumber + ".",
-        style: "row",
-        alignment: "center",
-      },
+      { text: category.label || category.serialNumber + ".", style: "row", alignment: "center" },
       { text: category.name || "", style: "row", alignment: "center" },
-      { text: quantityParts.join(", "), style: "row", alignment: "center" },
-      { text: locationParts.join(", "), style: "row" },
+      { text: quantityStr, style: "row", alignment: "center" },
+      { text: locationStr, style: "row" },
       { text: "", style: "row" },
-      {
-        text: getKeepPeriodText(category),
-        style: "row",
-        alignment: "center",
-      },
-      { text: "", style: "row" },
-    ];
+      { text: keepPeriod, style: "row", alignment: "center" },
+      { text: napomena, style: "row" },
+    ]);
+
+    structuredRows.push({
+      serialNumber,
+      categoryId: category._id,
+      categoryLabel: category.label || (category.serialNumber != null ? category.serialNumber + "." : ""),
+      categoryName: category.name || "",
+      yearStart: minYearStart !== "" ? minYearStart : null,
+      yearEnd: maxYearEnd !== "" ? maxYearEnd : null,
+      keepPeriod,
+      quantity: quantityStr,
+      location: locationStr,
+      latestDate,
+      napomena,
+    });
   });
+
+  return { tableRows, structuredRows, endNumber: counter - 1 };
+}
+
+// New export: generates archive book PDF + rows for storage (does NOT call res)
+async function generateArchiveBookData(
+  documents,
+  companyName,
+  companyFolder,
+  consentNumber,
+  startNumber,
+) {
+  const { tableRows, structuredRows, endNumber } = buildCategoryRowData(documents, startNumber);
+  const body = [...buildTableHeader(), ...tableRows];
+  const documentDefinition = buildDocumentDefinition(body, companyName, consentNumber);
+  const pdfPath = await savePdfToFile(documentDefinition, companyFolder);
+  return { pdfPath, rows: structuredRows, endNumber };
+}
+
+// Generates rows only (no PDF). Merges napomene from existingRows by categoryId.
+async function generateArchiveBookRowsOnly(documents, startNumber, existingRows) {
+  const { structuredRows, endNumber } = buildCategoryRowData(documents, startNumber, existingRows);
+  return { rows: structuredRows, endNumber };
+}
+
+// Builds pdfmake rows from stored ArchiveBook.rows (for PDF-only regeneration)
+function buildPdfTableRowsFromStored(storedRows) {
+  return storedRows.map((r) => [
+    { text: r.serialNumber + ".", style: "row", alignment: "center" },
+    { text: r.latestDate ? format(new Date(r.latestDate), "dd.MM.yyyy") : "", style: "row", alignment: "center" },
+    { text: r.yearStart != null ? String(r.yearStart) : "", style: "row", alignment: "center" },
+    { text: r.yearEnd != null ? String(r.yearEnd) : "", style: "row", alignment: "center" },
+    { text: r.categoryLabel || "", style: "row", alignment: "center" },
+    { text: r.categoryName || "", style: "row", alignment: "center" },
+    { text: r.quantity || "", style: "row", alignment: "center" },
+    { text: r.location || "", style: "row" },
+    { text: "", style: "row" },
+    { text: r.keepPeriod || "", style: "row", alignment: "center" },
+    { text: r.napomena || "", style: "row" },
+  ]);
+}
+
+// Generates PDF from stored rows (with napomene already applied)
+async function generateArchiveBookPdf(storedRows, companyName, companyFolder, consentNumber) {
+  const pdfRows = buildPdfTableRowsFromStored(storedRows);
+  const body = [...buildTableHeader(), ...pdfRows];
+  const documentDefinition = buildDocumentDefinition(body, companyName, consentNumber);
+  const pdfPath = await savePdfToFile(documentDefinition, companyFolder);
+  return { pdfPath };
 }
 
 module.exports = {
   generatePdfperDocument,
   generatePdfperCategory,
+  generateArchiveBookData,
+  generateArchiveBookRowsOnly,
+  generateArchiveBookPdf,
+  getKeepPeriodText,
 };

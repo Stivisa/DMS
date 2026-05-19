@@ -218,7 +218,7 @@ const Users = () => {
             </div>
             <div className="flex ml-1">
               <button type="submit" className="button-basic">
-                Kreiraj
+                Dodaj
               </button>
               <button
                 className="button-default ml-1"

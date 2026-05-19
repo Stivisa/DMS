@@ -1130,7 +1130,7 @@ const handleError = (res, err, filePath, uploadDir) => {
         .status(400)
         .json({
           error:
-            "Redni broj dokumenta postoji. Redni broj dokumenta mora biti jedinstven!",
+            "Broj dokumenta postoji. Broj dokumenta mora biti jedinstven!",
           code: "SERIALNUMBER_DUPLICATE",
         });
     }

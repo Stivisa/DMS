@@ -270,7 +270,7 @@ const RecycleBin = () => {
                     sortingSerialNumber();
                   }}
                 >
-                  Redni br.
+                  Broj
                   {sortBy === "serialNumber" && !sortOrder ? (
                     <BiSolidDownArrowAlt className="arrow" />
                   ) : (
