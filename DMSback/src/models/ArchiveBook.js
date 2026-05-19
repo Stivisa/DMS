@@ -70,6 +70,9 @@ const ArchiveBookSchema = new mongoose.Schema(
   { timestamps: true, collection: "archive_books" },
 );
 
-ArchiveBookSchema.index({ companyId: 1, year: 1 }, { unique: true });
+ArchiveBookSchema.index(
+  { companyId: 1, year: 1 },
+  { unique: true, partialFilterExpression: { deleted: { $eq: false } } },
+);
 
 module.exports = mongoose.model("ArchiveBook", ArchiveBookSchema);
