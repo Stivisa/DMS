@@ -7,6 +7,7 @@ const {
 const CryptoJS = require("crypto-js");
 const router = require("express").Router();
 const logger = require("../middlewares/logger");
+const { auditLog, getChanges } = require("../utils/auditLog");
 
 //CHANGE PASSWORD
 //send old pass and new pass
@@ -62,22 +63,33 @@ router.put("/changepassword", verifyTokenAndUser, async (req, res) => {
 
     //avoid sending password back, even hashed one
     const { password, ...others } = updatedUser._doc;
-    res.status(200).json({ ...others });
+    await auditLog({
+      userId: req.user.id,
+      username: req.user.username,
+      action: "UPDATE",
+      resource: "User",
+      resourceId: updatedUser._id,
+      resourceName: updatedUser.username,
+      endpoint: req.originalUrl,
+      status: 200,
+      changes: { password: { old: "***", new: "***" } },
+    });
+    return res.status(200).json({ ...others });
   } catch (err) {
     logger.error("Error change user password:", err);
-    res
+    return res
       .status(500)
       .json({
         error: "Greška pri menjanju šifre korisnika.",
         code: "GENERIC_ERROR",
       });
-      return;
   }
 });
 
 //UPDATE prava korisnika
 router.put("/:id", verifyTokenAndAdmin, async (req, res) => {
   try {
+    const oldUser = await User.findById(req.params.id);
     const updatedUser = await User.findByIdAndUpdate(
       req.params.id,
       {
@@ -93,11 +105,22 @@ router.put("/:id", verifyTokenAndAdmin, async (req, res) => {
           code: "NOT_FOUND",
         });
     }
-    res.status(200).json(updatedUser);
+    await auditLog({
+      userId: req.user.id,
+      username: req.user.username,
+      action: "UPDATE",
+      resource: "User",
+      resourceId: updatedUser._id,
+      resourceName: updatedUser.username,
+      endpoint: req.originalUrl,
+      status: 200,
+      changes: oldUser ? getChanges(oldUser, updatedUser) : undefined,
+    });
+    return res.status(200).json(updatedUser);
   } catch (err) {
     if (err.code === 11000 && err.keyPattern.username) {
       // MongoDB duplicate key error
-      res
+      return res
         .status(400)
         .json({
           error:
@@ -106,14 +129,13 @@ router.put("/:id", verifyTokenAndAdmin, async (req, res) => {
         });
     } else {
       logger.error("Error edit user:", err);
-      res
+      return res
         .status(500)
         .json({
           error: "Došlo je do greške prilikom izmene korisnika.",
           code: "GENERIC_ERROR",
         });
     }
-    return;
   }
 });
 
@@ -132,13 +154,22 @@ router.delete("/:id", verifyTokenAndAdmin, async (req, res) => {
     logger.info(
       `Deleted user: ${deletedUser.username}, with id: ${deletedUser._id}`,
     );
-    res.status(200).json("User has been deleted.");
+    await auditLog({
+      userId: req.user.id,
+      username: req.user.username,
+      action: "DELETE",
+      resource: "User",
+      resourceId: deletedUser._id,
+      resourceName: deletedUser.username,
+      endpoint: req.originalUrl,
+      status: 200,
+    });
+    return res.status(200).json("User has been deleted.");
   } catch (err) {
     logger.error("Error delete user:", err);
-    res
+    return res
       .status(500)
       .json({ error: "Greška pri brisanju korisnika.", code: "GENERIC_ERROR" });
-      return;
   }
 });
 
@@ -152,13 +183,12 @@ router.get("/:id", verifyTokenAndAdmin, async (req, res) => {
         .json({ error: "Korisnik nije pronađen.", code: "NOT_FOUND" });
     }
     const { password, ...others } = user._doc;
-    res.status(200).json(others);
+    return res.status(200).json(others);
   } catch (err) {
     logger.error("Error get user:", err);
-    res
+    return res
       .status(500)
-      .json({ error: "Greška pri traženju korisnika.", code: "GENERIC_ERROR" });
-      return;
+      .json({ error: "Greška pri traženju korisnika.", code: "GENERIC_ERROR" });
   }
 });
 
@@ -168,13 +198,12 @@ router.get("/", verifyTokenAndAdmin, async (req, res) => {
     let users;
     users = await User.find().sort({ createdAt: -1 });
     users = users.filter((user) => user.username !== "superadmin");
-    res.status(200).json(users);
+    return res.status(200).json(users);
   } catch (err) {
     logger.error("Error get all users:", err);
-    res
+    return res
       .status(500)
-      .json({ error: "Greška pri traženju korisnika.", code: "GENERIC_ERROR" });
-      return;
+      .json({ error: "Greška pri traženju korisnika.", code: "GENERIC_ERROR" });
   }
 });
 

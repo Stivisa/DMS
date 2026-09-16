@@ -9,9 +9,10 @@ import { useNavigate, Link } from "react-router-dom";
 import date from "date-and-time";
 import { handleRequestErrorAlert } from "../../utils/errorHandlers";
 import InfoModal from "../../components/modal/InfoModal";
-import SearchFilter from "../../components/SearchFilter";
 import ErrorMessages from "../../components/ErrorMessages";
 import CategorySelect from "../../components/CategorySelect";
+import FilterSelect from "../../components/FilterSelect";
+import { notifySuccess } from "../../utils/toastNotifications";
 
 const RecycleBin = () => {
   const savedRecycleFilters = (() => {
@@ -25,7 +26,13 @@ const RecycleBin = () => {
   const [filteredDocuments, setFilteredDocuments] = useState([]);
   const [documents, setDocuments] = useState([]);
   const [categoriesAll, setCategoriesAll] = useState([]);
+  const [locationsAll, setLocationsAll] = useState([]);
+  const [tagsAll, setTagsAll] = useState([]);
+  const [clientsAll, setClientsAll] = useState([]);
   const [searchCategory, setSearchCategory] = useState(savedRecycleFilters?.searchCategory ?? "");
+  const [searchLocation, setSearchLocation] = useState(savedRecycleFilters?.searchLocation ?? "");
+  const [searchTag, setSearchTag] = useState(savedRecycleFilters?.searchTag ?? "");
+  const [searchClient, setSearchClient] = useState(savedRecycleFilters?.searchClient ?? "");
   const [searchContent, setSearchContent] = useState(savedRecycleFilters?.searchContent ?? "");
   const [selectedDocumentDelete, setSelectedDocumentDelete] = useState(null);
   const [modalOnDelete, setModalOnDelete] = useState(false);
@@ -62,9 +69,33 @@ const RecycleBin = () => {
                 setErrors({ message: err.response?.data?.error });
               }
             };
+    const fetchLocations = async () => {
+              try {
+                const response = await userRequest.get("locations");
+                setLocationsAll(response.data);
+              } catch (err) {
+                setErrors({ message: err.response?.data?.error });
+              }
+            };
+    const fetchTags = async () => {
+              try {
+                const response = await userRequest.get("tags");
+                setTagsAll(response.data);
+              } catch (err) {
+                setErrors({ message: err.response?.data?.error });
+              }
+            };
+    const fetchClients = async () => {
+              try {
+                const response = await userRequest.get("clients");
+                setClientsAll(response.data);
+              } catch (err) {
+                setErrors({ message: err.response?.data?.error });
+              }
+            };
     document.title = "OBRISANI DOKUMENTI";
     const fetchData = async () => {
-      await Promise.all([getDocuments(), fetchCategories()]);
+      await Promise.all([getDocuments(), fetchCategories(), fetchLocations(), fetchTags(), fetchClients()]);
     };
 
     fetchData();
@@ -75,6 +106,7 @@ const RecycleBin = () => {
       await userRequest
         .delete("document/" + selectedDocumentDelete._id)
         .then(() => {
+          notifySuccess("Dokument trajno obrisan!");
           getDocuments();
         })
         .catch(function (err) {
@@ -98,6 +130,7 @@ const RecycleBin = () => {
           filePath: selectedDocumentDelete.filePath,
         })
         .then(() => {
+          notifySuccess("Dokument uspešno vraćen!");
           getDocuments();
         })
         .catch(function (err) {
@@ -126,21 +159,35 @@ const RecycleBin = () => {
         item.categories?.some((cat) => cat._id === searchCategory)
       );
     }
+    if (searchLocation) {
+      result = result.filter((item) => item.location === searchLocation);
+    }
+    if (searchTag) {
+      result = result.filter((item) =>
+        item.tags?.some((tag) => tag._id === searchTag)
+      );
+    }
+    if (searchClient) {
+      result = result.filter((item) => item.client === searchClient);
+    }
     if (searchExpired) {
       result = result.filter((item) => item.expired === true);
     }
     setFilteredDocuments(result);
-  }, [documents, searchContent, searchCategory, searchExpired]);
+  }, [documents, searchContent, searchCategory, searchLocation, searchTag, searchClient, searchExpired]);
 
   useEffect(() => {
     sessionStorage.setItem('recycle_filters', JSON.stringify({
       searchCategory,
+      searchLocation,
+      searchTag,
+      searchClient,
       searchContent,
       searchExpired,
       sortBy,
       sortOrder,
     }));
-  }, [searchCategory, searchContent, searchExpired, sortBy, sortOrder]);
+  }, [searchCategory, searchLocation, searchTag, searchClient, searchContent, searchExpired, sortBy, sortOrder]);
 
   function sortingOriginDate() {
     if (!sortOrder) {
@@ -204,16 +251,6 @@ const RecycleBin = () => {
     },
   ];
 
-  const sectionsFilter = [
-    {
-      onChange: (e) => setSearchContent(e.target.value),
-      value: searchContent,
-      title: "Sadržaj",
-      placeholder: "Filter sadržaj",
-      type: "text",
-    },
-  ];
-
   return (
     <>
       <div className="px-2 py-1 border-2 border-default rounded-lg bg-white">
@@ -235,29 +272,66 @@ const RecycleBin = () => {
         </div>
         <ErrorMessages errors={errors} />
       </div>
-      <div className="search-filter-div">
-      <SearchFilter sections={sectionsFilter} />
-      <h1 className="text-lg text-default font-semibold ml-1">Kategorija:</h1>
-        <div className="flex items-center">
-        <CategorySelect
-          className="ml-1 w-48"
-          value={searchCategory}
-          onChange={(ev) => setSearchCategory(ev.target.value)}
-          options={categoriesAll}
-        />
+      <div className="w-full px-2 p-1 border rounded-lg bg-white flex items-center flex-wrap gap-2">
+        <div className="flex items-center gap-1 flex-nowrap">
+          <h1 className="text-lg text-default font-semibold whitespace-nowrap">Sadržaj:</h1>
+          <input
+            id="search-box"
+            placeholder="Filter sadržaj"
+            className="input-field w-44"
+            value={searchContent}
+            onChange={(e) => setSearchContent(e.target.value)}
+          />
         </div>
-        <h1 className="text-lg text-default font-semibold ml-1">
-          Bezvredni:
-        </h1>
-        <div className="flex items-center cursor-pointer">
+        <div className="flex items-center gap-1 flex-nowrap">
+          <h1 className="text-lg text-default font-semibold whitespace-nowrap">Kategorija:</h1>
+          <CategorySelect
+            className="w-44"
+            value={searchCategory}
+            onChange={(ev) => setSearchCategory(ev.target.value)}
+            options={categoriesAll}
+          />
+        </div>
+        <div className="flex items-center gap-1 flex-nowrap">
+          <h1 className="text-lg text-default font-semibold whitespace-nowrap">Bezvredni:</h1>
           <input
             id="expired-checkbox"
             type="checkbox"
             checked={searchExpired}
-            className="ml-1 w-5 h-5 rounded-full border-2 cursor-pointer"
+            className="w-5 h-5 rounded-full border-2 cursor-pointer"
             onChange={(e) => setSearchExpired(e.target.checked)}
           />
-        </div>       
+        </div>
+        <div className="flex items-center gap-1 flex-nowrap">
+          <h1 className="text-lg text-default font-semibold whitespace-nowrap">Lokacija:</h1>
+          <FilterSelect
+            className="w-32"
+            value={searchLocation}
+            onChange={(ev) => setSearchLocation(ev.target.value)}
+            options={locationsAll}
+            placeholder="Lokacija"
+          />
+        </div>
+        <div className="flex items-center gap-1 flex-nowrap">
+          <h1 className="text-lg text-default font-semibold whitespace-nowrap">Tag:</h1>
+          <FilterSelect
+            className="w-32"
+            value={searchTag}
+            onChange={(ev) => setSearchTag(ev.target.value)}
+            options={tagsAll}
+            placeholder="Tag"
+          />
+        </div>
+        <div className="flex items-center gap-1 flex-nowrap">
+          <h1 className="text-lg text-default font-semibold whitespace-nowrap">Klijent:</h1>
+          <FilterSelect
+            className="w-32"
+            value={searchClient}
+            onChange={(ev) => setSearchClient(ev.target.value)}
+            options={clientsAll}
+            placeholder="Klijent"
+          />
+        </div>
       </div>
       <div className="grid-recyclebin pl-2">
         <div

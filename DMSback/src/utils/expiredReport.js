@@ -110,15 +110,11 @@ function savePdfToFile(documentDefinition, companyFolder) {
 }
 
 // Groups expired documents by category; returns { tableRows, structuredRows, endNumber }
-// archiveBookRows — optional array from ArchiveBook.rows to fill archiveBookSerialNumber
-function buildExpiredCategoryRowData(documents, startNumber, archiveBookRows) {
-  const archiveMap = new Map();
-  if (archiveBookRows) {
-    archiveBookRows.forEach((r) => {
-      if (r.categoryId) archiveMap.set(r.categoryId.toString(), r.serialNumber);
-    });
-  }
-
+// documents — expired docs (can be from any year)
+// companyId — to query ArchiveBook
+// ArchiveBookModel — mongoose model to fetch archive book rows by year
+// startNumber — starting serial number for expired list
+async function buildExpiredCategoryRowData(documents, startNumber, companyId, ArchiveBookModel) {
   const categoryMap = new Map();
   documents.forEach((doc) => {
     doc.categories.forEach((category) => {
@@ -134,9 +130,29 @@ function buildExpiredCategoryRowData(documents, startNumber, archiveBookRows) {
   const structuredRows = [];
   let counter = startNumber;
 
-  Array.from(categoryMap.values()).forEach(({ category, docs }) => {
+  for (const { category, docs } of Array.from(categoryMap.values())) {
     const yearStartValues = docs.map((d) => d.yearStart).filter((y) => y != null);
-    const minYearStart = yearStartValues.length > 0 ? Math.min(...yearStartValues) : "";
+    const minYearStart = yearStartValues.length > 0 ? Math.min(...yearStartValues) : null;
+
+    // Look up serial number from the ArchiveBook of the year the documents were archived
+    let archiveBookSerialNumber = null;
+    if (minYearStart && ArchiveBookModel) {
+      try {
+        const archiveBook = await ArchiveBookModel.findOne({
+          companyId,
+          year: minYearStart,
+        });
+        if (archiveBook && archiveBook.rows) {
+          const categoryId = category._id.toString();
+          const foundRow = archiveBook.rows.find((r) => r.categoryId?.toString() === categoryId);
+          if (foundRow) {
+            archiveBookSerialNumber = foundRow.serialNumber;
+          }
+        }
+      } catch (err) {
+        console.error(`Error fetching ArchiveBook for year ${minYearStart}:`, err);
+      }
+    }
 
     let totalFileSizeMB = 0;
     const physicalQuantities = new Set();
@@ -153,15 +169,13 @@ function buildExpiredCategoryRowData(documents, startNumber, archiveBookRows) {
     const quantityStr = quantityParts.join(", ");
 
     const keepPeriod = getKeepPeriodText(category);
-    const categoryId = category._id.toString();
-    const archiveBookSerialNumber = archiveMap.get(categoryId) || null;
     const serialNumber = counter++;
     const categoryLabel = category.serialNumber ? category.serialNumber + "." : "";
 
     tableRows.push([
       { text: serialNumber + ".", style: "row", alignment: "center" },
       { text: category.name || "", style: "row", alignment: "center" },
-      { text: minYearStart !== "" ? String(minYearStart) : "", style: "row", alignment: "center" },
+      { text: minYearStart !== null ? String(minYearStart) : "", style: "row", alignment: "center" },
       { text: keepPeriod, style: "row", alignment: "center" },
       { text: archiveBookSerialNumber ? archiveBookSerialNumber + "." : "", style: "row", alignment: "center" },
       { text: categoryLabel, style: "row", alignment: "center" },
@@ -173,53 +187,31 @@ function buildExpiredCategoryRowData(documents, startNumber, archiveBookRows) {
       categoryId: category._id,
       categoryLabel: category.serialNumber != null ? category.serialNumber + "." : "",
       categoryName: category.name || "",
-      yearStart: minYearStart !== "" ? minYearStart : null,
+      yearStart: minYearStart,
       keepPeriod,
       quantity: quantityStr,
       archiveBookSerialNumber,
     });
-  });
+  }
 
   return { tableRows, structuredRows, endNumber: counter - 1 };
 }
 
-// ── Backward-compat export (Document.jsx still uses this) ─────────────────────
-
-async function generateExpiredReport(
-  documents,
-  companyName,
-  companyFolder,
-  consentNumber,
-  startDate,
-  endDate,
-  res,
-) {
-  const { tableRows } = buildExpiredCategoryRowData(documents, 1, null);
-  const documentDefinition = buildExpiredDocumentDefinition(tableRows, companyName);
-  const pdfDoc = printer.createPdfKitDocument(documentDefinition);
-  const filename = `bezvredni_materijal_${format(new Date(), "ddMMyyyy_HHmmss")}.pdf`;
-  const filePath = path.join(getDmsReportFolderPath(companyFolder), filename);
-  const fileStream = fs.createWriteStream(filePath);
-  pdfDoc.pipe(fileStream);
-  pdfDoc.end();
-  fileStream.on("finish", () => {
-    res.json({ folder: companyFolder, filename: filename });
-  });
-}
-
-// ── New export: generates PDF + structured rows (does NOT call res) ───────────
+// ── Generates PDF + structured rows (does NOT call res) ───────────────────────
 
 async function generateExpiredData(
   documents,
   companyName,
   companyFolder,
   startNumber,
-  archiveBookRows,
+  companyId,
+  ArchiveBookModel,
 ) {
-  const { tableRows, structuredRows, endNumber } = buildExpiredCategoryRowData(
+  const { tableRows, structuredRows, endNumber } = await buildExpiredCategoryRowData(
     documents,
     startNumber,
-    archiveBookRows,
+    companyId,
+    ArchiveBookModel,
   );
   const documentDefinition = buildExpiredDocumentDefinition(tableRows, companyName);
   const pdfPath = await savePdfToFile(documentDefinition, companyFolder);
@@ -227,6 +219,5 @@ async function generateExpiredData(
 }
 
 module.exports = {
-  generateExpiredReport,
   generateExpiredData,
 };

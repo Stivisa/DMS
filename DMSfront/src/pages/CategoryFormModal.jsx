@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import ErrorMessages from "../components/ErrorMessages";
 import { userRequest } from "../utils/requestMethods";
 import { handleRequestErrorAlert } from "../utils/errorHandlers";
+import { notifyCreated, notifyUpdated } from "../utils/toastNotifications";
 
 const CategoryFormModal = ({
   isOpen,
@@ -77,6 +78,7 @@ const CategoryFormModal = ({
           keepYears,
           keepMonths,
         });
+        notifyUpdated("Kategorija");
       } else {
         // Creating
         await userRequest.post("categories", {
@@ -86,6 +88,7 @@ const CategoryFormModal = ({
           keepYears,
           keepMonths,
         });
+        notifyCreated("Kategorija");
       }
       getCategories(); // Refresh the categories list
       onClose(); // Close the modal

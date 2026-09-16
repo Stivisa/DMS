@@ -3,33 +3,24 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@eslint/object-schema": "^2.1.4",
-    "@jridgewell/sourcemap-codec": "^1.4.15",
     "@reduxjs/toolkit": "^1.9.5",
     "axios": "^1.4.0",
     "date-and-time": "^3.0.2",
-    "js-file-download": "^0.4.12",
-    "lru-cache": "^10.2.2",
-    "npm": "^10.2.5",
-    "nth-check": "^2.0.1",
-    "pdf-lib": "^1.17.1",
     "prettier": "^3.3.2",
     "react": "^18.2.0",
     "react-datepicker": "^4.25.0",
     "react-dom": "^18.2.0",
     "react-icons": "^4.12.0",
-    "react-papaparse": "^4.4.0",
     "react-redux": "^8.1.1",
     "react-router-dom": "^6.14.1",
     "react-scripts": "^5.0.1",
+    "react-toastify": "^11.1.0",
     "redux": "^5.0.1",
     "redux-persist": "^6.0.0",
-    "rimraf": "^5.0.7",
-    "svgo": "^3.3.2",
     "typescript": "^4.9.5"
   },
   "scripts": {
-    "start": "set PORT=3000 && react-scripts start",
+    "start": "set PORT=3000 && set NODE_OPTIONS=--no-deprecation && react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
@@ -40,19 +31,6 @@
       "react-app",
       "react-app/jest"
     ]
-  },
-  "devDependencies": {
-    "@babel/core": "^7.0.0-0",
-    "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
-    "@babel/plugin-syntax-flow": "^7.14.5",
-    "@babel/plugin-transform-class-properties": "^7.24.7",
-    "@babel/plugin-transform-nullish-coalescing-operator": "^7.24.7",
-    "@babel/plugin-transform-numeric-separator": "^7.24.7",
-    "@babel/plugin-transform-private-methods": "^7.24.7",
-    "@babel/plugin-transform-react-jsx": "^7.14.9",
-    "autoprefixer": "^10.4.21",
-    "postcss": "^8.5.3",
-    "tailwindcss": "^3.4.17"
   },
   "browserslist": {
     "production": [

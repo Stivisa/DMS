@@ -13,6 +13,7 @@ import InfoModal from "../components/modal/InfoModal";
 import SearchFilter from "../components/SearchFilter";
 import ErrorMessages from "../components/ErrorMessages";
 import CategoryFormModal from "./CategoryFormModal";
+import { notifyDeleted, notifyUpdated } from "../utils/toastNotifications";
 
 const Categories = () => {
   const [filteredCategories, setFilteredCategories] = useState([]);
@@ -74,6 +75,7 @@ const Categories = () => {
     try {
       setErrors({});
       await userRequest.put("settings/consentnumber", { value: consentNumber });
+      notifyUpdated("Broj saglasnosti");
     } catch (err) {
       handleRequestErrorAlert(err);
       setErrors({ message: err.response?.data?.error });
@@ -91,6 +93,7 @@ const Categories = () => {
       await userRequest
         .delete("categories/" + selectedCategoryDelete._id)
         .then(() => {
+          notifyDeleted("Kategorija");
           getCategories();
         })
         .catch(function (err) {

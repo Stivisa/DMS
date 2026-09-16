@@ -3,6 +3,7 @@ const {
   verifyTokenAndUser,
 } = require("../middlewares/verifyToken");
 const logger = require("../middlewares/logger");
+const { auditLog, getChanges } = require("../utils/auditLog");
 const router = require("express").Router();
 
 //CREATE
@@ -10,27 +11,39 @@ router.post("/", verifyTokenAndUser, async (req, res) => {
   const newLocation = new Location(req.body);
   try {
     const savedLocation = await newLocation.save();
-    res.status(200).json(savedLocation);
+    await auditLog({
+      userId: req.user.id,
+      username: req.user.username,
+      companyId: req.headers.companyid,
+      companyName: req.headers.companyname,
+      action: "CREATE",
+      resource: "Location",
+      resourceId: savedLocation._id,
+      resourceName: savedLocation.name,
+      endpoint: req.originalUrl,
+      status: 200,
+    });
+    return res.status(200).json(savedLocation);
   } catch (err) {
     if (err.code === 11000 && err.keyPattern?.name) {
-      res.status(400).json({
+      return res.status(400).json({
         error: "Lokacija već postoji. Naziv lokacije mora biti jedinstven!",
         code: "NAME_DUPLICATE",
       });
     } else {
       logger.error("Error create location:", err);
-      res.status(500).json({
+      return res.status(500).json({
         error: "Došlo je do greške prilikom kreiranja lokacije.",
         code: "GENERIC_ERROR",
       });
     }
-    return;
   }
 });
 
 //UPDATE
 router.put("/:id", verifyTokenAndUser, async (req, res) => {
   try {
+    const oldLocation = await Location.findById(req.params.id);
     const updatedLocation = await Location.findByIdAndUpdate(
       req.params.id,
       { $set: req.body },
@@ -42,21 +55,33 @@ router.put("/:id", verifyTokenAndUser, async (req, res) => {
         code: "NOT_FOUND",
       });
     }
-    res.status(200).json(updatedLocation);
+    await auditLog({
+      userId: req.user.id,
+      username: req.user.username,
+      companyId: req.headers.companyid,
+      companyName: req.headers.companyname,
+      action: "UPDATE",
+      resource: "Location",
+      resourceId: updatedLocation._id,
+      resourceName: updatedLocation.name,
+      endpoint: req.originalUrl,
+      status: 200,
+      changes: oldLocation ? getChanges(oldLocation, updatedLocation) : undefined,
+    });
+    return res.status(200).json(updatedLocation);
   } catch (err) {
     if (err.code === 11000 && err.keyPattern?.name) {
-      res.status(400).json({
+      return res.status(400).json({
         error: "Lokacija već postoji. Naziv lokacije mora biti jedinstven!",
         code: "NAME_DUPLICATE",
       });
     } else {
       logger.error("Error edit location:", err);
-      res.status(500).json({
+      return res.status(500).json({
         error: "Došlo je do greške prilikom izmene lokacije.",
         code: "GENERIC_ERROR",
       });
     }
-    return;
   }
 });
 
@@ -70,14 +95,25 @@ router.delete("/:id", verifyTokenAndUser, async (req, res) => {
         code: "NOT_FOUND",
       });
     }
-    res.status(200).json("Location has been deleted.");
+    await auditLog({
+      userId: req.user.id,
+      username: req.user.username,
+      companyId: req.headers.companyid,
+      companyName: req.headers.companyname,
+      action: "DELETE",
+      resource: "Location",
+      resourceId: deletedLocation._id,
+      resourceName: deletedLocation.name,
+      endpoint: req.originalUrl,
+      status: 200,
+    });
+    return res.status(200).json("Location has been deleted.");
   } catch (err) {
     logger.error("Error delete location:", err);
-    res.status(500).json({
+    return res.status(500).json({
       error: "Greška pri brisanju lokacije.",
       code: "GENERIC_ERROR",
     });
-    return;
   }
 });
 
@@ -91,14 +127,13 @@ router.get("/:id", async (req, res) => {
         code: "NOT_FOUND",
       });
     }
-    res.status(200).json(location);
+    return res.status(200).json(location);
   } catch (err) {
     logger.error("Error get location:", err);
-    res.status(500).json({
+    return res.status(500).json({
       error: "Greška pri traženju lokacije.",
       code: "GENERIC_ERROR",
     });
-    return;
   }
 });
 
@@ -106,14 +141,13 @@ router.get("/:id", async (req, res) => {
 router.get("/", async (req, res) => {
   try {
     const locations = await Location.find().sort({ name: 1 });
-    res.status(200).json(locations);
+    return res.status(200).json(locations);
   } catch (err) {
     logger.error("Error get all locations:", err);
-    res.status(500).json({
+    return res.status(500).json({
       error: "Greška pri traženju lokacija.",
       code: "GENERIC_ERROR",
     });
-    return;
   }
 });
 

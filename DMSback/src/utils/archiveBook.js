@@ -1,5 +1,5 @@
 const { format } = require("date-fns");
-const { getDmsReportFolderPath, getDmsFolderPath } = require("./storage");
+const { getDmsReportFolderPath } = require("./storage");
 const path = require("path");
 const fs = require("fs");
 
@@ -117,20 +117,6 @@ function getKeepPeriodText(category) {
   return "";
 }
 
-function savePdfAndRespond(documentDefinition, companyFolder, res) {
-  const pdfDoc = printer.createPdfKitDocument(documentDefinition);
-  const filename = `arhivska_knjiga_${format(new Date(), "ddMMyyyy_HHmmss")}.pdf`;
-  const filePath = path.join(getDmsReportFolderPath(companyFolder), filename);
-
-  const fileStream = fs.createWriteStream(filePath);
-  pdfDoc.pipe(fileStream);
-  pdfDoc.end();
-
-  fileStream.on("finish", () => {
-    res.json({ folder: companyFolder, filename: filename });
-  });
-}
-
 function savePdfToFile(documentDefinition, companyFolder) {
   return new Promise((resolve, reject) => {
     const pdfDoc = printer.createPdfKitDocument(documentDefinition);
@@ -146,103 +132,7 @@ function savePdfToFile(documentDefinition, companyFolder) {
   });
 }
 
-// ── Per-document PDF ──────────────────────────────────────────────────────────
-
-async function generatePdfperDocument(
-  documents,
-  companyName,
-  companyFolder,
-  consentNumber,
-  res,
-) {
-  const dmsPath = getDmsFolderPath();
-  const fullPath = path.join(dmsPath, companyFolder);
-  const slicedPath = fullPath.slice(3);
-
-  const body = [
-    ...buildTableHeader(),
-    ...generateDocumentRows(documents, slicedPath),
-  ];
-
-  const documentDefinition = buildDocumentDefinition(
-    body,
-    companyName,
-    consentNumber,
-  );
-  savePdfAndRespond(documentDefinition, companyFolder, res);
-}
-
-function generateDocumentRows(data, fullPath) {
-  return data.map((item) => {
-    const maxKeepPeriodCategory = item.categories.reduce(
-      (maxCategory, currentCategory) => {
-        const currentKeepPeriod =
-          currentCategory.keepYears === 0 && currentCategory.keepMonths === 0
-            ? Infinity
-            : (currentCategory.keepYears || 0) * 12 +
-              (currentCategory.keepMonths || 0);
-        const maxKeepPeriod =
-          maxCategory.keepYears === 0 && maxCategory.keepMonths === 0
-            ? Infinity
-            : (maxCategory.keepYears || 0) * 12 +
-              (maxCategory.keepMonths || 0);
-        return currentKeepPeriod > maxKeepPeriod ? currentCategory : maxCategory;
-      },
-      { keepYears: -1, keepMonths: -1 },
-    );
-    return [
-      { text: item.serialNumber + ".", style: "row", alignment: "center" },
-      {
-        text: format(new Date(item.createdAt), "dd.MM.yyyy"),
-        style: "row",
-        alignment: "center",
-      },
-      { text: item.yearStart || "", style: "row", alignment: "center" },
-      { text: item.yearEnd || "", style: "row", alignment: "center" },
-      {
-        text: item.categories
-          .map((category) => category.label || category.serialNumber + ".")
-          .join(","),
-        style: "row",
-        alignment: "center",
-      },
-      { text: item.content, style: "row", alignment: "center" },
-      {
-        text: item.fileSize !== "0" ? item.fileSize + " MB" : item.quantity,
-        style: "row",
-        alignment: "center",
-      },
-      {
-        text: item.filePath
-          ? fullPath + "\\" + item.filePath
-          : item.physicalLocation,
-        style: "row",
-      },
-      { text: "", style: "row" },
-      {
-        text: getKeepPeriodText(maxKeepPeriodCategory),
-        style: "row",
-        alignment: "center",
-      },
-      { text: item.note || "", style: "row" },
-    ];
-  });
-}
-
 // ── Per-category PDF ──────────────────────────────────────────────────────────
-
-async function generatePdfperCategory(
-  documents,
-  companyName,
-  companyFolder,
-  consentNumber,
-  res,
-) {
-  const { tableRows } = buildCategoryRowData(documents, 1);
-  const body = [...buildTableHeader(), ...tableRows];
-  const documentDefinition = buildDocumentDefinition(body, companyName, consentNumber);
-  savePdfAndRespond(documentDefinition, companyFolder, res);
-}
 
 // Returns { tableRows, structuredRows, endNumber }
 // tableRows   — pdfmake cell arrays
@@ -351,21 +241,6 @@ function buildCategoryRowData(documents, startNumber, existingRows = null) {
   return { tableRows, structuredRows, endNumber: counter - 1 };
 }
 
-// New export: generates archive book PDF + rows for storage (does NOT call res)
-async function generateArchiveBookData(
-  documents,
-  companyName,
-  companyFolder,
-  consentNumber,
-  startNumber,
-) {
-  const { tableRows, structuredRows, endNumber } = buildCategoryRowData(documents, startNumber);
-  const body = [...buildTableHeader(), ...tableRows];
-  const documentDefinition = buildDocumentDefinition(body, companyName, consentNumber);
-  const pdfPath = await savePdfToFile(documentDefinition, companyFolder);
-  return { pdfPath, rows: structuredRows, endNumber };
-}
-
 // Generates rows only (no PDF). Merges napomene from existingRows by categoryId.
 async function generateArchiveBookRowsOnly(documents, startNumber, existingRows) {
   const { structuredRows, endNumber } = buildCategoryRowData(documents, startNumber, existingRows);
@@ -399,9 +274,6 @@ async function generateArchiveBookPdf(storedRows, companyName, companyFolder, co
 }
 
 module.exports = {
-  generatePdfperDocument,
-  generatePdfperCategory,
-  generateArchiveBookData,
   generateArchiveBookRowsOnly,
   generateArchiveBookPdf,
   getKeepPeriodText,

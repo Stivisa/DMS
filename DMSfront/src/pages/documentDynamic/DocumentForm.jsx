@@ -11,6 +11,7 @@ import ModalFolderContent from "../../components/modal/FolderContentModal";
 import DeleteModal from "../../components/modal/DeleteModal";
 import ErrorMessages from "../../components/ErrorMessages";
 import CategorySelect from "../../components/CategorySelect";
+import { notifyCreated, notifyUpdated, notifyDeleted, notifySuccess } from "../../utils/toastNotifications";
 
 const DocumentForm = ({
   _id,
@@ -218,6 +219,7 @@ const DocumentForm = ({
           },
         })
         .then((response) => {
+          notifyUpdated("Dokument");
           if (response.data.isDeleted === true) {
             navigate("/recyclebin");
           } else {
@@ -249,6 +251,7 @@ const DocumentForm = ({
           if (response.status === 200) {
             console.log("uploaded successfully");
           }
+          notifyCreated("Dokument");
           navigate("/document");
         })
         .catch((err) => {
@@ -264,6 +267,7 @@ const DocumentForm = ({
         filePath: filePath,
       })
       .then(() => {
+        notifyDeleted("Dokument");
         setChoiceModalRecycle(false);
         navigate("/document");
       })
@@ -285,6 +289,7 @@ const DocumentForm = ({
         filePath: filePath,
       })
       .then(() => {
+        notifySuccess("Dokument uspešno vraćen!");
         setChoiceModalRestore(false);
         navigate("/recyclebin");
       })
@@ -304,6 +309,7 @@ const DocumentForm = ({
     await userRequest
       .delete("document/" + _id)
       .then(() => {
+        notifySuccess("Dokument trajno obrisan!");
         setChoiceModalDelete(false);
         navigate("/recyclebin");
       })

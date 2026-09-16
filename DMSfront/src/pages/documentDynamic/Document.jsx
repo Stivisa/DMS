@@ -2,15 +2,15 @@ import React, { useCallback, useEffect, useState } from "react";
 //import { useSelector } from "react-redux";
 import { AiFillDelete, AiFillEdit } from "react-icons/ai";
 import { BsInfoCircle } from "react-icons/bs";
-//import { FaBookOpen } from "react-icons/fa6";
+import { FaBookOpen } from "react-icons/fa6";
 import { ImArrowLeft, ImArrowRight } from "react-icons/im";
 import { IoMdAddCircle } from "react-icons/io";
 import {
   BiSolidDownArrowAlt,
   BiSolidUpArrowAlt,
 } from "react-icons/bi";
-//import { userRequest, BASE_URL } from "../../utils/requestMethods";
-import { userRequest } from "../../utils/requestMethods";
+import { userRequest, BASE_URL } from "../../utils/requestMethods";
+//import { userRequest } from "../../utils/requestMethods";
 import { handleRequestErrorAlert } from "../../utils/errorHandlers";
 import DeleteModal from "../../components/modal/DeleteModal";
 import { useNavigate, Link } from "react-router-dom";
@@ -21,6 +21,8 @@ import InfoModal from "../../components/modal/InfoModal";
 import ErrorMessages from "../../components/ErrorMessages";
 import LoadingModal from "../../components/modal/LoadingModal";
 import CategorySelect from "../../components/CategorySelect";
+import FilterSelect from "../../components/FilterSelect";
+import { notifyDeleted } from "../../utils/toastNotifications";
 
 const DocumentDynamic = () => {
   const savedDocFilters = (() => {
@@ -32,7 +34,13 @@ const DocumentDynamic = () => {
 
   const [documents, setDocuments] = useState([]);
   const [categoriesAll, setCategoriesAll] = useState([]);
+  const [locationsAll, setLocationsAll] = useState([]);
+  const [tagsAll, setTagsAll] = useState([]);
+  const [clientsAll, setClientsAll] = useState([]);
   const [searchCategory, setSearchCategory] = useState(savedDocFilters?.searchCategory ?? "");
+  const [searchLocation, setSearchLocation] = useState(savedDocFilters?.searchLocation ?? "");
+  const [searchTag, setSearchTag] = useState(savedDocFilters?.searchTag ?? "");
+  const [searchClient, setSearchClient] = useState(savedDocFilters?.searchClient ?? "");
   const [selectedDocumentDelete, setSelectedDocumentDelete] = useState(null);
   const [modalOnDelete, setModalOnDelete] = useState(false);
   const [modalOnDeleteExpired, setModalOnDeleteExpired] = useState(false);
@@ -85,13 +93,16 @@ const DocumentDynamic = () => {
       sortOrder,
       expired: searchExpired,
       ...(searchCategory ? { category: searchCategory } : {}),
+      ...(searchLocation ? { location: searchLocation } : {}),
+      ...(searchTag ? { tag: searchTag } : {}),
+      ...(searchClient ? { client: searchClient } : {}),
       ...(searchContent ? { content: searchContent } : {}),
       ...(searchStartDate && searchEndDate
         ? { startdate: searchStartDate, enddate: searchEndDate }
         : {}),
     };
     return params;
-  }, [page, limit, searchContent, searchStartDate, searchEndDate, sortBy, sortOrder, searchExpired, searchCategory]);
+  }, [page, limit, searchContent, searchStartDate, searchEndDate, sortBy, sortOrder, searchExpired, searchCategory, searchLocation, searchTag, searchClient]);
 
   const getDocuments = useCallback(async () => {
     const params = getParams();
@@ -115,33 +126,33 @@ const DocumentDynamic = () => {
     }
   }, [getParams]);
 
-  // const getArchiveBook = useCallback(
-  //   async () => {
-  //     const params = getParams();
-  //     try {
-  //       let loadingTimeout = setTimeout(() => {
-  //         setLoading(true); // Set loading state to true after 2 seconds
-  //       }, 2000);
-  //       const response = await userRequest.get(
-  //         "document/generate/archivebook",
-  //         { params},
-  //       );
-  //       clearTimeout(loadingTimeout);
+  const getReportArchivedDocuments = useCallback(
+    async () => {
+      const params = getParams();
+      try {
+        let loadingTimeout = setTimeout(() => {
+          setLoading(true); // Set loading state to true after 2 seconds
+        }, 2000);
+        const response = await userRequest.get(
+          "document/report/archivedocuments",
+          { params},
+        );
+        clearTimeout(loadingTimeout);
 
-  //        //previous solution worked with blob, but could not pass custom name
-  //       const folder = response.data.folder;
-  //       const filename = response.data.filename;
-  //       const publicUrl = `${BASE_URL}document/preview/report/${filename}?folder=${folder}`;
-  //       window.open(publicUrl, "_blank");
-  //     } catch (err) {
-  //       handleRequestErrorAlert(err);
-  //       setErrors({ message: err.response?.data?.error});
-  //     } finally {
-  //       setLoading(false); // Set loading state to false
-  //     }
-  //   },
-  //   [getParams],
-  // );
+         //previous solution worked with blob, but could not pass custom name
+        const folder = response.data.folder;
+        const filename = response.data.filename;
+        const publicUrl = `${BASE_URL}document/preview/report/${filename}?folder=${folder}`;
+        window.open(publicUrl, "_blank");
+      } catch (err) {
+        handleRequestErrorAlert(err);
+        setErrors({ message: err.response?.data?.error});
+      } finally {
+        setLoading(false); // Set loading state to false
+      }
+    },
+    [getParams],
+  );
 
   //button removed, query by keepDate not expired flag
   /*
@@ -165,36 +176,37 @@ const DocumentDynamic = () => {
   */
 
   //button download removed, preview now have custom name
-  // const getExpiredReport = useCallback(async (preview) => {
-  //   const params = getParams();
-  //   try {
-  //     let loadingTimeout = setTimeout(() => {
-  //       setLoading(true); // Set loading state to true after 2 seconds
-  //     }, 2000);
-  //     const response = await userRequest.get(
-  //       "document/generate/reportexpired",
-  //       { params},
-  //     );
-  //     clearTimeout(loadingTimeout);
+  const getReportExpiredDocuments = useCallback(async (preview) => {
+    const params = getParams();
+    try {
+      let loadingTimeout = setTimeout(() => {
+        setLoading(true); // Set loading state to true after 2 seconds
+      }, 2000);
+      const response = await userRequest.get(
+        "document/report/expireddocuments",
+        { params},
+      );
+      clearTimeout(loadingTimeout);
 
-  //        //previous solution worked with blob, but could not pass custom name
-  //        const folder = response.data.folder;
-  //        const filename = response.data.filename;
-  //        const publicUrl = `${BASE_URL}document/preview/report/${filename}?folder=${folder}`;
-  //        window.open(publicUrl, "_blank");
+         //previous solution worked with blob, but could not pass custom name
+         const folder = response.data.folder;
+         const filename = response.data.filename;
+         const publicUrl = `${BASE_URL}document/preview/report/${filename}?folder=${folder}`;
+         window.open(publicUrl, "_blank");
 
-  //       if (isAdmin || superAdmin) {
-  //         setTimeout(() => {
-  //           setModalOnDeleteExpired(true); // Set the modal for expired documents
-  //         }, 1000);
-  //       }
-  //   }catch (err) {
-  //     handleRequestErrorAlert(err);
-  //     setErrors({ message: err.response?.data?.error});
-  //   } finally {
-  //     setLoading(false); // Set loading state to false
-  //   }
-  // }, [getParams, isAdmin, superAdmin]);
+        // if (isAdmin || superAdmin) {
+        //   setTimeout(() => {
+        //     setModalOnDeleteExpired(true); // Set the modal for expired documents
+        //   }, 1000);
+        //}
+    }catch (err) {
+      handleRequestErrorAlert(err);
+      setErrors({ message: err.response?.data?.error});
+    } finally {
+      setLoading(false); // Set loading state to false
+    }
+  }, [getParams]);
+  //}, [getParams, isAdmin, superAdmin]);
 
   const deleteExpiredDocuments = useCallback(async () => {
     try {
@@ -207,7 +219,7 @@ const DocumentDynamic = () => {
     
     await userRequest.delete(url);
     clearTimeout(loadingTimeout);
-
+    notifyDeleted("Bezvredni dokumenti");
     await getDocuments(); // Refresh the documents list after deletion
       setChoiceModalDeleteExpired(false);
     } catch (err) {
@@ -250,9 +262,33 @@ const DocumentDynamic = () => {
             setErrors({ message: err.response?.data?.error });
           }
         };
+    const fetchLocations = async () => {
+          try {
+            const response = await userRequest.get("locations");
+            setLocationsAll(response.data);
+          } catch (err) {
+            setErrors({ message: err.response?.data?.error });
+          }
+        };
+    const fetchTags = async () => {
+          try {
+            const response = await userRequest.get("tags");
+            setTagsAll(response.data);
+          } catch (err) {
+            setErrors({ message: err.response?.data?.error });
+          }
+        };
+    const fetchClients = async () => {
+          try {
+            const response = await userRequest.get("clients");
+            setClientsAll(response.data);
+          } catch (err) {
+            setErrors({ message: err.response?.data?.error });
+          }
+        };
     document.title = "DOKUMENTI";
     const fetchData = async () => {
-      await Promise.all([getDocuments(), fetchCategories()]);
+      await Promise.all([getDocuments(), fetchCategories(), fetchLocations(), fetchTags(), fetchClients()]);
     };
 
     fetchData();
@@ -261,6 +297,9 @@ const DocumentDynamic = () => {
   useEffect(() => {
     sessionStorage.setItem('doc_filters', JSON.stringify({
       searchCategory,
+      searchLocation,
+      searchTag,
+      searchClient,
       sortBy,
       sortOrder,
       searchExpired,
@@ -269,7 +308,7 @@ const DocumentDynamic = () => {
       searchStartDate: searchStartDate?.toISOString(),
       searchEndDate: searchEndDate?.toISOString(),
     }));
-  }, [searchCategory, sortBy, sortOrder, searchExpired, page, searchContent, searchStartDate, searchEndDate]);
+  }, [searchCategory, searchLocation, searchTag, searchClient, sortBy, sortOrder, searchExpired, page, searchContent, searchStartDate, searchEndDate]);
 
   const deleteProduct = useCallback(async () => {
     if (selectedDocumentDelete) {
@@ -278,6 +317,7 @@ const DocumentDynamic = () => {
           filePath: selectedDocumentDelete.filePath,
         })
         .then(() => {
+          notifyDeleted("Dokument");
           getDocuments();
         })
         .catch(function (err) {
@@ -406,6 +446,10 @@ const DocumentDynamic = () => {
       header: "Pretraga po datumu nastanka:",
       text: "uključujući oba datuma. Brisanje bilo kog datuma, vraća sva dokumenta",
     },
+    {
+      header: "Izveštaji:",
+      text: "interni izveštaji dokumenata. Ne predstavljaju zvaničan dokument i nisu zamena za arhivsku knjigu.",
+    },
   ];
 
   return (
@@ -420,22 +464,22 @@ const DocumentDynamic = () => {
             </Link>
           </div>
           <div className="flex items-center">
-            {/*
+            
             <button
               className="button-basic flex items-center mr-1"
               title="Pregledaj bezvredni materijal"
-              onClick={() => getExpiredReport(true)}
+              onClick={() => getReportExpiredDocuments(true)}
             >
-              <FaBookOpen className="mr-1 text-xl" title="Pregledaj bezvredni materijal" /> Bezvredni materijal
+              <FaBookOpen className="mr-1 text-xl" title="Izveštaj bezvredni materijal" /> Izveštaj bezvredni materijal
             </button>
             <button
               className="button-basic flex items-center"
               title="Pregledaj arhivsku knjigu"
-              onClick={() => getArchiveBook()}
+              onClick={() => getReportArchivedDocuments()}
             >
-              <FaBookOpen className="mr-1 text-xl" title="Pregledaj arhivsku knjigu" /> Arhivska knjiga
+              <FaBookOpen className="mr-1 text-xl" title="Izveštaj arhiviranih dokumenata" /> Izveštaj arhiviranih dokumenata
             </button>
-            */}
+           
             {/*
             <p
               onClick={() => ExportToJson()}
@@ -469,37 +513,35 @@ const DocumentDynamic = () => {
           </div>
         </div>
       </div>
-      <div className="w-full px-2 p-1 border rounded-lg bg-white flex items-center">
-        <h1 className="text-lg text-default font-semibold">Sadržaj:</h1>
-        <div className="flex items-center">
+      <div className="w-full px-2 p-1 border rounded-lg bg-white flex items-center flex-wrap gap-2">
+        <div className="flex items-center gap-1 flex-nowrap">
+          <h1 className="text-lg text-default font-semibold whitespace-nowrap">Sadržaj:</h1>
           <input
             id="search-box"
             placeholder="Filter sadržaj"
-            className="input-field ml-1"
+            className="input-field w-44"
             value={searchContent}
             onChange={filterByContent}
           />
         </div>
-        <h1 className="text-lg text-default font-semibold ml-1">Kategorija:</h1>
-        <div className="flex items-center">
-        <CategorySelect
-          className="ml-1 w-48"
-          value={searchCategory}
-          onChange={(ev) => setSearchCategory(ev.target.value)}
-          options={categoriesAll}
-        />
+        <div className="flex items-center gap-1 flex-nowrap">
+          <h1 className="text-lg text-default font-semibold whitespace-nowrap">Kategorija:</h1>
+          <CategorySelect
+            className="w-44"
+            value={searchCategory}
+            onChange={(ev) => setSearchCategory(ev.target.value)}
+            options={categoriesAll}
+          />
         </div>
-        <h1 className="text-lg text-default font-semibold ml-1">
-          Nastao:
-        </h1>
-        <div className="flex ml-1">
+        <div className="flex items-center gap-1 flex-nowrap">
+          <h1 className="text-lg text-default font-semibold whitespace-nowrap">Nastao:</h1>
           <DatePicker
             className="border-2 border-default w-24 cursor-pointer"
             selected={searchStartDate}
             onChange={(date) => { date.setHours(0, 0, 0, 0); setSearchStartDate(date); }}
             dateFormat="dd/MM/yyyy"
           />
-          <label className="mx-1 text-md text-default font-bold">-</label>
+          <label className="text-md text-default font-bold">-</label>
           <DatePicker
             className="border-2 border-default w-24 cursor-pointer"
             selected={searchEndDate}
@@ -507,16 +549,44 @@ const DocumentDynamic = () => {
             dateFormat="dd/MM/yyyy"
           />
         </div>
-        <h1 className="text-lg text-default font-semibold ml-1">
-          Bezvredni:
-        </h1>
-        <div className="flex items-center cursor-pointer">
+        <div className="flex items-center gap-1 flex-nowrap">
+          <h1 className="text-lg text-default font-semibold whitespace-nowrap">Bezvredni:</h1>
           <input
             id="expired-checkbox"
             type="checkbox"
             checked={searchExpired}
-            className="ml-1 w-5 h-5 rounded-full border-2 cursor-pointer"
+            className="w-5 h-5 rounded-full border-2 cursor-pointer"
             onChange={(e) => setSearchExpired(e.target.checked)}
+          />
+        </div>
+        <div className="flex items-center gap-1 flex-nowrap">
+          <h1 className="text-lg text-default font-semibold whitespace-nowrap">Lokacija:</h1>
+          <FilterSelect
+            className="w-32"
+            value={searchLocation}
+            onChange={(ev) => setSearchLocation(ev.target.value)}
+            options={locationsAll}
+            placeholder="Lokacija"
+          />
+        </div>
+        <div className="flex items-center gap-1 flex-nowrap">
+          <h1 className="text-lg text-default font-semibold whitespace-nowrap">Tag:</h1>
+          <FilterSelect
+            className="w-32"
+            value={searchTag}
+            onChange={(ev) => setSearchTag(ev.target.value)}
+            options={tagsAll}
+            placeholder="Tag"
+          />
+        </div>
+        <div className="flex items-center gap-1 flex-nowrap">
+          <h1 className="text-lg text-default font-semibold whitespace-nowrap">Klijent:</h1>
+          <FilterSelect
+            className="w-32"
+            value={searchClient}
+            onChange={(ev) => setSearchClient(ev.target.value)}
+            options={clientsAll}
+            placeholder="Klijent"
           />
         </div>
       </div>

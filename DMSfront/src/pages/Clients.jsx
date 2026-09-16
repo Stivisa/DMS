@@ -9,6 +9,7 @@ import { handleRequestErrorAlert } from "../utils/errorHandlers";
 import InfoModal from "../components/modal/InfoModal";
 import SearchFilter from "../components/SearchFilter";
 import ErrorMessages from "../components/ErrorMessages";
+import { notifyCreated, notifyUpdated, notifyDeleted } from "../utils/toastNotifications";
 
 const Clients = () => {
   const [filteredClients, setFilteredClients] = useState([]);
@@ -47,6 +48,7 @@ const Clients = () => {
       await userRequest
         .delete("clients/" + selectedClientDelete._id)
         .then(() => {
+          notifyDeleted("Komitent");
           getClients();
         })
         .catch(function (err) {
@@ -85,6 +87,7 @@ const Clients = () => {
           //internal,
         })
         .then(() => {
+          notifyUpdated("Komitent");
           setName("");
           //setInternal(false);
           setSelectedClientEdit(null);
@@ -101,6 +104,7 @@ const Clients = () => {
           //internal,
         })
         .then(() => {
+          notifyCreated("Komitent");
           setName("");
           //setInternal(false);
           getClients();

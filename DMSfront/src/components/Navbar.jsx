@@ -9,9 +9,12 @@ import { handleRequestErrorAlert } from "../utils/errorHandlers";
 import { TbLogout } from "react-icons/tb";
 import { RiLockPasswordLine } from "react-icons/ri";
 import { BsBuildingGear } from "react-icons/bs";
+import WarningModal from "./modal/WarningModal";
 
 const NavbarNew = ({ onResetActiveLink }) => {
   const [dropdown, setDropdown] = useState(false);
+  const [showWarning, setShowWarning] = useState(false);
+  const [warningMessage, setWarningMessage] = useState("");
   const user = useSelector((state) => state.user.currentUser);
   const companyName = useSelector(
     (state) => state.company?.currentCompany?.name,
@@ -23,6 +26,11 @@ const NavbarNew = ({ onResetActiveLink }) => {
   const [diskError, setDiskError] = useState("");
 
   function Logout() {
+    Object.keys(localStorage).forEach((key) => {
+      if (key.startsWith("storageWarning_")) {
+        localStorage.removeItem(key);
+      }
+    });
     dispatch(logout());
     dispatch(resetCompany());
   }
@@ -48,8 +56,26 @@ const NavbarNew = ({ onResetActiveLink }) => {
     getStorageFreeSpace();
   }, [getStorageFreeSpace]);
 
+  // Check if storage is less than 5GB and show warning once per login
+  useEffect(() => {
+    const diskFreeNum = Number(diskFree);
+    if (diskFreeNum && diskFreeNum < 5 && user?._id) {
+      const storageWarningKey = `storageWarning_${user._id}`;
+      const hasShownWarning = localStorage.getItem(storageWarningKey);
+
+      if (!hasShownWarning) {
+        setWarningMessage(
+          `Slobodno prostora na disku je manje od 5GB. Trenutno dostupno: ${diskFree}GB. Preporučujemo da očistite stari dokumenti da biste oslobodili prostor.`
+        );
+        setShowWarning(true);
+        localStorage.setItem(storageWarningKey, "true");
+      }
+    }
+  }, [diskFree, user?._id]);
+
   return (
-    <div className="bg-white w-full border shadow h-16 px-4 flex justify-between items-center ">
+    <>
+      <div className="bg-white w-full border shadow h-16 px-4 flex justify-between items-center ">
       {/* Left side */}
       <div className="flex items-center">
         {companyOnlyOne ? (
@@ -141,6 +167,13 @@ const NavbarNew = ({ onResetActiveLink }) => {
         )}
       </div>
     </div>
+    {showWarning && (
+      <WarningModal
+        onClose={() => setShowWarning(false)}
+        message={warningMessage}
+      />
+    )}
+    </>
   );
 };
 

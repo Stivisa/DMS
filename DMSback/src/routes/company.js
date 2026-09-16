@@ -7,6 +7,7 @@ const {
 } = require("../middlewares/verifyToken");
 const { createDocumentDuplicateModel } = require("../models/documentDynamic");
 const logger = require("../middlewares/logger");
+const { auditLog, getChanges } = require("../utils/auditLog");
 const fs = require("fs");
 const path = require("path");
 
@@ -37,12 +38,21 @@ router.post("/", verifyTokenAndSuperAdmin, async (req, res) => {
       savedCompany.folderName = companyCollectionName;
       await savedCompany.save();
     }
-
-    res.status(200).json(savedCompany);
+    await auditLog({
+      userId: req.user.id,
+      username: req.user.username,
+      action: "CREATE",
+      resource: "Company",
+      resourceId: savedCompany._id,
+      resourceName: savedCompany.name,
+      endpoint: req.originalUrl,
+      status: 200,
+    });
+    return res.status(200).json(savedCompany);
   } catch (err) {
     if (err.code === 11000 && err.keyPattern.name) {
       // MongoDB duplicate key error
-      res
+      return res
         .status(400)
         .json({
           error:
@@ -52,20 +62,20 @@ router.post("/", verifyTokenAndSuperAdmin, async (req, res) => {
     } else {
       // Generalna poruka greške za frontend ako nije prepoznata specifična vrsta greške. Dok pravu gresku pisemo u logger.
       logger.error("Error create user:", err);
-      res
+      return res
         .status(500)
         .json({
           error: "Došlo je do greške prilikom kreiranja kompanije.",
           code: "GENERIC_ERROR",
         });
     }
-    return;
   }
 });
 
 //UPDATE
 router.put("/:id", verifyTokenAndSuperAdmin, async (req, res) => {
   try {
+    const oldCompany = await Company.findById(req.params.id);
     const updatedClient = await Company.findByIdAndUpdate(
       req.params.id,
       {
@@ -81,11 +91,22 @@ router.put("/:id", verifyTokenAndSuperAdmin, async (req, res) => {
           code: "NOT_FOUND",
         });
     }
-    res.status(200).json(updatedClient);
+    await auditLog({
+      userId: req.user.id,
+      username: req.user.username,
+      action: "UPDATE",
+      resource: "Company",
+      resourceId: updatedClient._id,
+      resourceName: updatedClient.name,
+      endpoint: req.originalUrl,
+      status: 200,
+      changes: oldCompany ? getChanges(oldCompany, updatedClient) : undefined,
+    });
+    return res.status(200).json(updatedClient);
   } catch (err) {
     if (err.code === 11000 && err.keyPattern.name) {
       // MongoDB duplicate key error
-      res
+      return res
         .status(400)
         .json({
           error:
@@ -95,14 +116,13 @@ router.put("/:id", verifyTokenAndSuperAdmin, async (req, res) => {
     } else {
       // Generalna poruka greške za frontend ako nije prepoznata specifična vrsta greške. Dok pravu gresku pisemo u logger.
       logger.error("Error edit user:", err);
-      res
+      return res
         .status(500)
         .json({
           error: "Došlo je do greške prilikom izmene kompanije.",
           code: "GENERIC_ERROR",
         });
     }
-    return;
   }
 });
 
@@ -137,13 +157,22 @@ router.delete("/:id", verifyTokenAndSuperAdmin, async (req, res) => {
           code: "NOT_FOUND",
         });
     }
-    res.status(200).json("Company has been deleted.");
+    await auditLog({
+      userId: req.user.id,
+      username: req.user.username,
+      action: "DELETE",
+      resource: "Company",
+      resourceId: deletedCompany._id,
+      resourceName: deletedCompany.name,
+      endpoint: req.originalUrl,
+      status: 200,
+    });
+    return res.status(200).json("Company has been deleted.");
   } catch (err) {
     logger.error("Error delete company:", err);
-    res
+    return res
       .status(500)
       .json({ error: "Greška pri brisanju kompanije.", code: "GENERIC_ERROR" });
-    return;
   }
 });
 
@@ -151,13 +180,12 @@ router.delete("/:id", verifyTokenAndSuperAdmin, async (req, res) => {
 router.get("/", async (req, res) => {
   try {
     const companies = await Company.find().sort({ createdAt: -1 });
-    res.status(200).json(companies);
+    return res.status(200).json(companies);
   } catch (err) {
     logger.error("Error get all companies:", err);
-    res
+    return res
       .status(500)
-      .json({ error: "Greška pri traženju kompanija.", code: "GENERIC_ERROR" });
-    return;
+      .json({ error: "Greška pri traženju kompanija.", code: "GENERIC_ERROR" });
   }
 });
 
@@ -170,13 +198,12 @@ router.get("/:id", async (req, res) => {
         .status(404)
         .json({ error: "Kompanija nije pronađena.", code: "NOT_FOUND" });
     }
-    res.status(200).json(company);
+    return res.status(200).json(company);
   } catch (err) {
     logger.error("Error get company:", err);
-    res
+    return res
       .status(500)
-      .json({ error: "Greška pri traženju kompanije.", code: "GENERIC_ERROR" });
-      return;
+      .json({ error: "Greška pri traženju kompanije.", code: "GENERIC_ERROR" });
   }
 });
 

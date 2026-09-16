@@ -10,6 +10,7 @@ import { handleRequestErrorAlert } from "../utils/errorHandlers";
 import InfoModal from "../components/modal/InfoModal";
 import SearchFilter from "../components/SearchFilter";
 import ErrorMessages from "../components/ErrorMessages";
+import { notifyCreated, notifyUpdated, notifyDeleted } from "../utils/toastNotifications";
 
 const Tags = () => {
   const [filteredTags, setFilteredTags] = useState([]);
@@ -60,6 +61,7 @@ const Tags = () => {
       await userRequest
         .delete("tags/" + selectedTagDelete._id)
         .then(() => {
+          notifyDeleted("Tag");
           getTags();
         })
         .catch(function (err) {
@@ -98,6 +100,7 @@ const Tags = () => {
           name: name,
         })
         .then(() => {
+          notifyUpdated("Tag");
           setName("");
           setSelectedTagEdit(null);
           getTags();
@@ -113,6 +116,7 @@ const Tags = () => {
           name: name,
         })
         .then(() => {
+          notifyCreated("Tag");
           setName("");
           getTags();
         })

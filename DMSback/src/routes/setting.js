@@ -4,11 +4,12 @@ const checkDiskSpace = require("check-disk-space").default;
 const InvalidPathError = require("check-disk-space").InvalidPathError;
 const { getDmsFolderPath } = require("../utils/storage");
 const logger = require("../middlewares/logger");
+const { auditLog } = require("../utils/auditLog");
 
 const router = require("express").Router();
 
 //GET setting by name
-router.get("/:name", async (req, res) => {
+router.get("/:name", verifyTokenAndUser, async (req, res) => {
   try {
     const setting = await Setting.findOne({ name: req.params.name });
     if (!setting) {
@@ -19,10 +20,10 @@ router.get("/:name", async (req, res) => {
           code: "NOT_FOUND",
         });
     }
-    res.status(200).json(setting);
+    return res.status(200).json(setting);
   } catch (err) {
     logger.error("Error get setting by name - " + req.params.name + " :", err);
-    res
+    return res
       .status(500)
       .json({
         error: "Greška pri trazenju podešavanja " + req.params.name,
@@ -35,6 +36,7 @@ router.get("/:name", async (req, res) => {
 //put consent number , uvek ce biti prisutan zbog seed
 router.put("/consentnumber", verifyTokenAndUser, async (req, res) => {
   try {
+    const oldSetting = await Setting.findOne({ name: "brojSaglasnosti" });
     const setting = await Setting.findOneAndUpdate(
       { name: "brojSaglasnosti" },
       { value: req.body.value }, // Postavljamo vrednost polja na vrednost koja je poslata u zahtevu
@@ -48,10 +50,23 @@ router.put("/consentnumber", verifyTokenAndUser, async (req, res) => {
           code: "NOT_FOUND",
         });
     }
-    res.status(200).json(setting);
+    await auditLog({
+      userId: req.user.id,
+      username: req.user.username,
+      companyId: req.headers.companyid,
+      companyName: req.headers.companyname,
+      action: "UPDATE",
+      resource: "Setting",
+      resourceId: setting._id,
+      resourceName: setting.name,
+      endpoint: req.originalUrl,
+      status: 200,
+      changes: oldSetting ? { value: { old: oldSetting.value, new: setting.value } } : undefined,
+    });
+    return res.status(200).json(setting);
   } catch (err) {
     logger.error("Error edit consent number:", err);
-    res
+    return res
       .status(500)
       .json({
         error: "Greška pri izmeni broja saglasnosti.",
@@ -75,7 +90,7 @@ router.get("/storage/free", verifyTokenAndUser, async (req, res) => {
     const diskSpace = await checkDiskSpace(diskPath);
     const gbFree = (diskSpace.free / (1024 * 1024 * 1024)).toFixed(1);
     const gbSize = (diskSpace.size / (1024 * 1024 * 1024)).toFixed(1);
-    res.status(200).json({ gbFree, gbSize });
+    return res.status(200).json({ gbFree, gbSize });
   } catch (err) {
     if (err instanceof InvalidPathError) {
       return res
@@ -86,14 +101,13 @@ router.get("/storage/free", verifyTokenAndUser, async (req, res) => {
         });
     } else {
       logger.error("Error check disk space:", err);
-      res
+      return res
         .status(500)
         .json({
           error: "Greška prilikom provere prostora diska.",
           code: "GENERIC_ERROR",
         });
     }
-    return;
   }
 });
 

@@ -5,6 +5,7 @@ const jwt = require("jsonwebtoken");
 const { verifyToken } = require("../middlewares/verifyToken");
 const CustomError = require("../utils/CustomError");
 const logger = require("../middlewares/logger");
+const { auditLog } = require("../utils/auditLog");
 //REGISTER
 router.post("/register", verifyToken, async (req, res) => {
   const newUser = new User({
@@ -19,11 +20,21 @@ router.post("/register", verifyToken, async (req, res) => {
     const savedUser = await newUser.save(); //vraca error ako ne uspe snimanje, ako uspe vrati objekat snimljeni
     //avoid sending password back, even hashed one
     const { password, ...others } = savedUser._doc;
-    res.status(200).json(others);
+    await auditLog({
+      userId: req.user.id,
+      username: req.user.username,
+      action: "CREATE",
+      resource: "User",
+      resourceId: savedUser._id,
+      resourceName: savedUser.username,
+      endpoint: req.originalUrl,
+      status: 200,
+    });
+    return res.status(200).json(others);
   } catch (err) {
     if (err.code === 11000 && err.keyPattern.username) {
       // MongoDB duplicate key error
-      res
+      return res
         .status(400)
         .json({
           error:
@@ -33,14 +44,13 @@ router.post("/register", verifyToken, async (req, res) => {
     } else {
       // Generalna poruka greške za frontend ako nije prepoznata specifična vrsta greške. Dok pravu gresku pisemo u logger.
       logger.error("Error register user:", err);
-      res
+      return res
         .status(500)
         .json({
           error: "Došlo je do greške prilikom registracije korisnika.",
           code: "GENERIC_ERROR",
         });
     }
-    return;
   }
 });
 
@@ -74,20 +84,19 @@ router.post("/login", async (req, res) => {
     );
     //avoid sending password back, even hashed one
     const { password, ...others } = user._doc;
-    res.status(200).json({ ...others, accessToken });
+    return res.status(200).json({ ...others, accessToken });
   } catch (err) {
     if (err instanceof CustomError) {
-      res.status(400).json({ error: err.message, code: err.code });
+      return res.status(400).json({ error: err.message, code: err.code });
     } else {
       logger.error("Error login user:", err);
-      res
+      return res
         .status(500)
         .json({
           error: "Došlo je do greške prilikom prijavljivanja korisnika.",
           code: "GENERIC_ERROR",
         });
     }
-    return;
   }
 });
 

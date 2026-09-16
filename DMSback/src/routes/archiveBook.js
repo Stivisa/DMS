@@ -13,9 +13,11 @@ const CustomError = require("../utils/CustomError");
 const Setting = require("../models/Setting");
 const Company = require("../models/Company");
 const ArchiveBook = require("../models/ArchiveBook");
-const { generateArchiveBookData, generateArchiveBookRowsOnly, generateArchiveBookPdf } = require("../utils/archiveBook");
+const { generateArchiveBookRowsOnly, generateArchiveBookPdf } = require("../utils/archiveBook");
 const { generateExpiredData } = require("../utils/expiredReport");
 const { getDmsReportFolderPath } = require("../utils/storage");
+const { generateQueryAndSortOptions } = require("./documentDynamic");
+const { auditLog } = require("../utils/auditLog");
 
 router.use(companyCollectionMiddleware);
 
@@ -31,20 +33,30 @@ async function getCompanyAndSetting(companyId) {
   return { companyName: company.name, consentNumber: setting.value };
 }
 
+function buildYearQueryParams(year, expired = false) {
+  return {
+    expired,
+    startdate: new Date(year, 0, 1),
+    enddate: new Date(year, 11, 31, 23, 59, 59),
+  };
+}
+
 function getDocumentsForYear(collection, year) {
-  const startDate = new Date(year, 0, 1);
-  const endDate = new Date(year, 11, 31, 23, 59, 59);
+  const queryParams = buildYearQueryParams(year, false);
+  const { query } = generateQueryAndSortOptions(queryParams);
+  
   return collection
-    .find({ expired: false, originDate: { $gte: startDate, $lte: endDate } })
+    .find(query)
     .sort({ serialNumber: 1 })
     .populate("categories");
 }
 
 function getExpiredDocumentsForYear(collection, year) {
-  const startDate = new Date(year, 0, 1);
-  const endDate = new Date(year, 11, 31, 23, 59, 59);
+  const queryParams = buildYearQueryParams(year, true);
+  const { query } = generateQueryAndSortOptions(queryParams);
+  
   return collection
-    .find({ expired: true, originDate: { $gte: startDate, $lte: endDate } })
+    .find(query)
     .sort({ serialNumber: 1 })
     .populate("categories");
 }
@@ -58,10 +70,10 @@ router.get("/", verifyTokenAndUser, async (req, res) => {
       .populate("lockedBy", "username")
       .populate("createdBy", "username")
       .populate("updatedBy", "username");
-    res.status(200).json(records);
+    return res.status(200).json(records);
   } catch (err) {
     logger.error("Error get archive books:", err);
-    res.status(500).json({ error: "Greška pri preuzimanju arhivske knjige.", code: "GENERIC_ERROR" });
+    return res.status(500).json({ error: "Greška pri preuzimanju arhivske knjige.", code: "GENERIC_ERROR" });
   }
 });
 
@@ -81,21 +93,38 @@ router.post("/", verifyTokenAndUser, async (req, res) => {
     const resolvedStartNumber = prevYear
       ? prevYear.endNumber + 1
       : startNumber != null ? Number(startNumber) : undefined;
+    
+    const resolvedExpiredStartNumber = prevYear && prevYear.expiredEndNumber != null
+      ? prevYear.expiredEndNumber + 1
+      : undefined;
 
     const record = await ArchiveBook.create({
       companyId,
       year: Number(year),
       ...(resolvedStartNumber != null && { startNumber: resolvedStartNumber }),
+      expiredStartNumber: resolvedExpiredStartNumber,
       createdBy: req.user.id,
       updatedBy: req.user.id,
     });
-    res.status(201).json(record);
+    await auditLog({
+      userId: req.user.id,
+      username: req.user.username,
+      companyId: req.headers.companyid,
+      companyName: req.headers.companyname,
+      action: "CREATE",
+      resource: "ArchiveBook",
+      resourceId: record._id,
+      resourceName: String(record.year),
+      endpoint: req.originalUrl,
+      status: 201,
+    });
+    return res.status(201).json(record);
   } catch (err) {
     if (err.code === 11000) {
       return res.status(409).json({ error: "Zapis za ovu godinu već postoji.", code: "DUPLICATE_YEAR" });
     }
     logger.error("Error create archive book:", err);
-    res.status(500).json({ error: "Greška pri kreiranju arhivske knjige.", code: "GENERIC_ERROR" });
+    return res.status(500).json({ error: "Greška pri kreiranju arhivske knjige.", code: "GENERIC_ERROR" });
   }
 });
 
@@ -108,57 +137,35 @@ router.put("/:id", verifyTokenAndUser, async (req, res) => {
     if (record.lockedAt) return res.status(400).json({ error: "Godina je zaključana.", code: "LOCKED" });
 
     const { startNumber, expiredStartNumber } = req.body;
+    const changes = {};
+    if (startNumber !== undefined && Number(startNumber) !== record.startNumber) {
+      changes.startNumber = { old: record.startNumber, new: Number(startNumber) };
+    }
+    if (expiredStartNumber !== undefined && Number(expiredStartNumber) !== record.expiredStartNumber) {
+      changes.expiredStartNumber = { old: record.expiredStartNumber, new: Number(expiredStartNumber) };
+    }
     if (startNumber !== undefined) record.startNumber = Number(startNumber);
     if (expiredStartNumber !== undefined) record.expiredStartNumber = Number(expiredStartNumber);
     record.updatedBy = req.user.id;
 
     await record.save();
-    res.status(200).json(record);
+    await auditLog({
+      userId: req.user.id,
+      username: req.user.username,
+      companyId: req.headers.companyid,
+      companyName: req.headers.companyname,
+      action: "UPDATE",
+      resource: "ArchiveBook",
+      resourceId: record._id,
+      resourceName: String(record.year),
+      endpoint: req.originalUrl,
+      status: 200,
+      changes: Object.keys(changes).length > 0 ? changes : undefined,
+    });
+    return res.status(200).json(record);
   } catch (err) {
     logger.error("Error update archive book:", err);
-    res.status(500).json({ error: "Greška pri izmeni arhivske knjige.", code: "GENERIC_ERROR" });
-  }
-});
-
-// ── POST /:id/generate/archive ────────────────────────────────────────────────
-
-router.post("/:id/generate/archive", verifyTokenAndUser, async (req, res) => {
-  try {
-    const record = await ArchiveBook.findOne({ _id: req.params.id, companyId: req.companyId });
-    if (!record) return res.status(404).json({ error: "Zapis nije pronađen.", code: "NOT_FOUND" });
-    if (record.lockedAt) return res.status(400).json({ error: "Godina je zaključana.", code: "LOCKED" });
-
-    const { companyName, consentNumber } = await getCompanyAndSetting(req.companyId);
-    const documents = await getDocumentsForYear(req.collection, record.year);
-
-    const startNumber = req.body.startNumber !== undefined
-      ? Number(req.body.startNumber)
-      : record.startNumber;
-
-    const { pdfPath, rows, endNumber } = await generateArchiveBookData(
-      documents,
-      companyName,
-      req.companyfolder,
-      consentNumber,
-      startNumber,
-    );
-
-    record.startNumber = startNumber;
-    record.endNumber = endNumber;
-    record.pdfPath = pdfPath;
-    record.rows = rows;
-    record.updatedBy = req.user.id;
-    await record.save();
-
-    // Return path info for opening PDF in new tab (same pattern as existing routes)
-    const filename = path.basename(pdfPath);
-    res.status(200).json({ record, folder: req.companyfolder, filename });
-  } catch (err) {
-    if (err instanceof CustomError) {
-      return res.status(404).json({ error: err.message, code: err.code });
-    }
-    logger.error("Error generate archive book:", err);
-    res.status(500).json({ error: "Greška pri generisanju arhivske knjige.", code: "GENERIC_ERROR" });
+    return res.status(500).json({ error: "Greška pri izmeni arhivske knjige.", code: "GENERIC_ERROR" });
   }
 });
 
@@ -183,10 +190,23 @@ router.post("/:id/generate/archive/rows", verifyTokenAndUser, async (req, res) =
     record.updatedBy = req.user.id;
     await record.save();
 
-    res.status(200).json({ record, rows });
+    await auditLog({
+      userId: req.user.id,
+      username: req.user.username,
+      companyId: req.headers.companyid,
+      companyName: req.headers.companyname,
+      action: "UPDATE",
+      resource: "ArchiveBook",
+      resourceId: record._id,
+      resourceName: `Arhivska knjiga ${record.year} - Generisani redovi`,
+      endpoint: req.originalUrl,
+      status: 200,
+    });
+
+    return res.status(200).json({ record, rows });
   } catch (err) {
     logger.error("Error generate archive rows:", err);
-    res.status(500).json({ error: "Greška pri generisanju redova.", code: "GENERIC_ERROR" });
+    return res.status(500).json({ error: "Greška pri generisanju redova.", code: "GENERIC_ERROR" });
   }
 });
 
@@ -216,13 +236,26 @@ router.post("/:id/generate/archive/pdf", verifyTokenAndUser, async (req, res) =>
     await record.save();
 
     const filename = path.basename(pdfPath);
-    res.status(200).json({ record, folder: req.companyfolder, filename });
+    await auditLog({
+      userId: req.user.id,
+      username: req.user.username,
+      companyId: req.headers.companyid,
+      companyName: req.headers.companyname,
+      action: "UPDATE",
+      resource: "ArchiveBook",
+      resourceId: record._id,
+      resourceName: `Arhivska knjiga ${record.year} - Generisan PDF: ${filename}`,
+      endpoint: req.originalUrl,
+      status: 200,
+    });
+
+    return res.status(200).json({ record, folder: req.companyfolder, filename });
   } catch (err) {
     if (err instanceof CustomError) {
       return res.status(404).json({ error: err.message, code: err.code });
     }
     logger.error("Error generate archive PDF:", err);
-    res.status(500).json({ error: "Greška pri generisanju PDF-a.", code: "GENERIC_ERROR" });
+    return res.status(500).json({ error: "Greška pri generisanju PDF-a.", code: "GENERIC_ERROR" });
   }
 });
 
@@ -246,7 +279,8 @@ router.post("/:id/generate/expired", verifyTokenAndUser, async (req, res) => {
       companyName,
       req.companyfolder,
       startNumber,
-      record.rows,   // pass archive book rows for archiveBookSerialNumber lookup
+      req.companyId,
+      ArchiveBook,
     );
 
     record.expiredStartNumber = startNumber;
@@ -257,13 +291,26 @@ router.post("/:id/generate/expired", verifyTokenAndUser, async (req, res) => {
     await record.save();
 
     const filename = path.basename(pdfPath);
-    res.status(200).json({ record, folder: req.companyfolder, filename });
+    await auditLog({
+      userId: req.user.id,
+      username: req.user.username,
+      companyId: req.headers.companyid,
+      companyName: req.headers.companyname,
+      action: "UPDATE",
+      resource: "ArchiveBook",
+      resourceId: record._id,
+      resourceName: `Bezvredni materijal ${record.year} - Generisan izveštaj: ${filename}`,
+      endpoint: req.originalUrl,
+      status: 200,
+    });
+
+    return res.status(200).json({ record, folder: req.companyfolder, filename });
   } catch (err) {
     if (err instanceof CustomError) {
       return res.status(404).json({ error: err.message, code: err.code });
     }
     logger.error("Error generate expired report:", err);
-    res.status(500).json({ error: "Greška pri generisanju bezvrednog materijala.", code: "GENERIC_ERROR" });
+    return res.status(500).json({ error: "Greška pri generisanju bezvrednog materijala.", code: "GENERIC_ERROR" });
   }
 });
 
@@ -280,10 +327,10 @@ router.put("/:id/lock", verifyTokenAndUser, async (req, res) => {
     record.updatedBy = req.user.id;
     await record.save();
 
-    res.status(200).json(record);
+    return res.status(200).json(record);
   } catch (err) {
     logger.error("Error lock archive book:", err);
-    res.status(500).json({ error: "Greška pri zaključavanju.", code: "GENERIC_ERROR" });
+    return res.status(500).json({ error: "Greška pri zaključavanju.", code: "GENERIC_ERROR" });
   }
 });
 
@@ -294,15 +341,28 @@ router.put("/:id/unlock", verifyTokenAndSuperAdmin, async (req, res) => {
     const record = await ArchiveBook.findOne({ _id: req.params.id, companyId: req.companyId });
     if (!record) return res.status(404).json({ error: "Zapis nije pronađen.", code: "NOT_FOUND" });
 
+    const previousLockedAt = record.lockedAt;
     record.lockedAt = null;
     record.lockedBy = null;
     record.updatedBy = req.user.id;
     await record.save();
-
-    res.status(200).json(record);
+    await auditLog({
+      userId: req.user.id,
+      username: req.user.username,
+      companyId: req.headers.companyid,
+      companyName: req.headers.companyname,
+      action: "UPDATE",
+      resource: "ArchiveBook",
+      resourceId: record._id,
+      resourceName: String(record.year),
+      endpoint: req.originalUrl,
+      status: 200,
+      changes: { lockedAt: { old: previousLockedAt, new: null } },
+    });
+    return res.status(200).json(record);
   } catch (err) {
     logger.error("Error unlock archive book:", err);
-    res.status(500).json({ error: "Greška pri otključavanju.", code: "GENERIC_ERROR" });
+    return res.status(500).json({ error: "Greška pri otključavanju.", code: "GENERIC_ERROR" });
   }
 });
 
@@ -321,10 +381,22 @@ router.delete("/:id", verifyTokenAndUser, async (req, res) => {
     record.deleted = true;
     record.updatedBy = req.user.id;
     await record.save();
-    res.status(200).json({ message: "Zapis je obrisan." });
+    await auditLog({
+      userId: req.user.id,
+      username: req.user.username,
+      companyId: req.headers.companyid,
+      companyName: req.headers.companyname,
+      action: "DELETE",
+      resource: "ArchiveBook",
+      resourceId: record._id,
+      resourceName: String(record.year),
+      endpoint: req.originalUrl,
+      status: 200,
+    });
+    return res.status(200).json({ message: "Zapis je obrisan." });
   } catch (err) {
     logger.error("Error delete archive book:", err);
-    res.status(500).json({ error: "Greška pri brisanju.", code: "GENERIC_ERROR" });
+    return res.status(500).json({ error: "Greška pri brisanju.", code: "GENERIC_ERROR" });
   }
 });
 

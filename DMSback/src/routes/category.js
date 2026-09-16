@@ -5,6 +5,7 @@ const {
   verifyTokenAndUser,
 } = require("../middlewares/verifyToken");
 const logger = require("../middlewares/logger");
+const { auditLog, getChanges } = require("../utils/auditLog");
 
 const router = require("express").Router();
 
@@ -17,6 +18,18 @@ router.post("/", verifyTokenAndAdmin, async (req, res) => {
   const newCategory = new Category(req.body);
   try {
     const savedCategory = await newCategory.save();
+    await auditLog({
+      userId: req.user.id,
+      username: req.user.username,
+      companyId: req.headers.companyid,
+      companyName: req.headers.companyname,
+      action: "CREATE",
+      resource: "Category",
+      resourceId: savedCategory._id,
+      resourceName: savedCategory.name,
+      endpoint: req.originalUrl,
+      status: 200,
+    });
     return res.status(200).json(savedCategory);
   } catch (err) {
     if (err.code === 11000 && err.keyPattern?.name) {
@@ -45,6 +58,7 @@ router.post("/", verifyTokenAndAdmin, async (req, res) => {
 //UPDATE
 router.put("/:id", verifyTokenAndAdmin, async (req, res) => {
   try {
+    const oldCategory = await Category.findById(req.params.id);
     const updatedCategory = await Category.findByIdAndUpdate(
       req.params.id,
       {
@@ -60,7 +74,20 @@ router.put("/:id", verifyTokenAndAdmin, async (req, res) => {
           code: "NOT_FOUND",
         });
     }
-    res.status(200).json(updatedCategory);
+    await auditLog({
+      userId: req.user.id,
+      username: req.user.username,
+      companyId: req.headers.companyid,
+      companyName: req.headers.companyname,
+      action: "UPDATE",
+      resource: "Category",
+      resourceId: updatedCategory._id,
+      resourceName: updatedCategory.name,
+      endpoint: req.originalUrl,
+      status: 200,
+      changes: oldCategory ? getChanges(oldCategory, updatedCategory) : undefined,
+    });
+    return res.status(200).json(updatedCategory);
   } catch (err) {
     if (err.code === 11000 && err.keyPattern.name) {
       // MongoDB duplicate key error
@@ -128,7 +155,19 @@ router.delete("/:id", verifyTokenAndAdmin, async (req, res) => {
         .status(404)
         .json({ error: "Tag koji brišete nije pronadjen.", code: "NOT_FOUND" });
     }
-    res.status(200).json("Category has been deleted.");
+    await auditLog({
+      userId: req.user.id,
+      username: req.user.username,
+      companyId: req.headers.companyid,
+      companyName: req.headers.companyname,
+      action: "DELETE",
+      resource: "Category",
+      resourceId: deletedCategory._id,
+      resourceName: deletedCategory.name,
+      endpoint: req.originalUrl,
+      status: 200,
+    });
+    return res.status(200).json("Category has been deleted.");
   } catch (err) {
     logger.error("Error delete category:", err);
     return res
@@ -149,7 +188,7 @@ router.get("/:id", async (req, res) => {
         .status(404)
         .json({ error: "Kategorija nije pronađen.", code: "NOT_FOUND" });
     }
-    res.status(200).json(category);
+    return res.status(200).json(category);
   } catch (err) {
     logger.error("Error get category:", err);
     return res

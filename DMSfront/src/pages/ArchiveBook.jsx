@@ -7,6 +7,7 @@ import { handleRequestErrorAlert } from "../utils/errorHandlers";
 import ErrorMessages from "../components/ErrorMessages";
 import ModalDelete from "../components/modal/DeleteModal";
 import InfoModal from "../components/modal/InfoModal";
+import { notifyCreated, notifyUpdated, notifyDeleted } from "../utils/toastNotifications";
 
 // ── Add-year modal ────────────────────────────────────────────────────────────
 
@@ -73,6 +74,11 @@ const DetailsModal = ({ record: initialRecord, onClose, onRecordUpdate, companyF
   const [showUnlockConfirm, setShowUnlockConfirm] = useState(false);
   const [lockChoice, setLockChoice] = useState(false);
   const [unlockChoice, setUnlockChoice] = useState(false);
+  const [showDeleteExpiredConfirm, setShowDeleteExpiredConfirm] = useState(false);
+  const [deleteExpiredChoice, setDeleteExpiredChoice] = useState(false);
+  const [showArchiveHelp, setShowArchiveHelp] = useState(false);
+  const [showExpiredHelp, setShowExpiredHelp] = useState(false);
+  const [showFooterHelp, setShowFooterHelp] = useState(false);
 
   const locked = !!record.lockedAt;
 
@@ -87,6 +93,7 @@ const DetailsModal = ({ record: initialRecord, onClose, onRecordUpdate, companyF
         startNumber: startNumber !== "" ? Number(startNumber) : undefined,
         expiredStartNumber: expiredStartNumber !== "" ? Number(expiredStartNumber) : undefined,
       });
+      notifyUpdated("Knjiga");
       setRecord(resp.data);
       onRecordUpdate(resp.data);
     } catch (err) {
@@ -171,6 +178,33 @@ const DetailsModal = ({ record: initialRecord, onClose, onRecordUpdate, companyF
     window.open(url, "_blank");
   };
 
+  // Delete expired documents for the year
+  const deleteExpiredDocumentsForYear = useCallback(async () => {
+  setErrors({});
+  setLoading(true);
+  try {
+    const startDate = new Date(record.year, 0, 1);
+    const endDate = new Date(record.year, 11, 31, 23, 59, 59);
+    const params = {
+      page: 1,
+      limit: 1000,
+      sortBy: null,
+      sortOrder: true,
+      expired: true,
+      startdate: startDate,
+      enddate: endDate,
+    };
+    const url = `document/delete/expired?${Object.keys(params).map(key => `${key}=${params[key]}`).join('&')}`;
+    await userRequest.delete(url);
+    notifyDeleted("Bezvrijedni dokumenti");
+  } catch (err) {
+    handleRequestErrorAlert(err);
+    setErrors({ message: err.response?.data?.error });
+  } finally {
+    setLoading(false);
+  }
+}, [record.year]);
+
   // Lock / unlock
   useEffect(() => {
     if (lockChoice) {
@@ -181,6 +215,10 @@ const DetailsModal = ({ record: initialRecord, onClose, onRecordUpdate, companyF
           const resp = await userRequest.put(`archive-book/${record._id}/lock`);
           setRecord(resp.data);
           onRecordUpdate(resp.data);
+          // Check if year has expired rows - show delete modal
+          if ((isAdmin || superAdmin) && resp.data.expiredRows && resp.data.expiredRows.length > 0) {
+            setShowDeleteExpiredConfirm(true);
+          }
         } catch (err) {
           handleRequestErrorAlert(err);
           setErrors({ message: err.response?.data?.error });
@@ -189,7 +227,16 @@ const DetailsModal = ({ record: initialRecord, onClose, onRecordUpdate, companyF
         }
       })();
     }
-  }, [lockChoice, record._id, onRecordUpdate]);
+  }, [lockChoice, record._id, onRecordUpdate, isAdmin, superAdmin]);
+
+  useEffect(() => {
+    if (deleteExpiredChoice) {
+      (async () => {
+        setDeleteExpiredChoice(false);
+        await deleteExpiredDocumentsForYear();
+      })();
+    }
+  }, [deleteExpiredChoice, deleteExpiredDocumentsForYear]);
 
   useEffect(() => {
     if (unlockChoice) {
@@ -220,9 +267,18 @@ const DetailsModal = ({ record: initialRecord, onClose, onRecordUpdate, companyF
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-bold text-default">
-            Arhivska knjiga — {record.year}
-          </h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-bold text-default">
+              Arhivska knjiga — {record.year}
+            </h2>
+            <button
+              className="p-1 hover:bg-gray-200 rounded cursor-pointer"
+              onClick={() => setShowFooterHelp(true)}
+              title="Pomoć"
+            >
+              <BsInfoCircle size={18} className="text-default" />
+            </button>
+          </div>
           <span
             className={`text-xs font-bold px-2 py-1 rounded-full ${
               locked ? "bg-gray-300 text-gray-700" : "bg-green-200 text-green-800"
@@ -236,7 +292,16 @@ const DetailsModal = ({ record: initialRecord, onClose, onRecordUpdate, companyF
 
         {/* ── Arhivska knjiga section ── */}
         <div className="border-2 border-gray-400 rounded-lg p-3 mb-3 bg-white">
-          <h3 className="font-semibold text-default mb-2">Arhivska knjiga</h3>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-semibold text-default">Arhivska knjiga</h3>
+            <button
+              className="p-1 hover:bg-gray-200 rounded cursor-pointer"
+              onClick={() => setShowArchiveHelp(true)}
+              title="Pomoć"
+            >
+              <BsInfoCircle size={18} className="text-default" />
+            </button>
+          </div>
           <div className="grid grid-cols-2 gap-2 mb-2">
             <div>
               <label className="text-xs font-semibold">Redni broj</label>
@@ -330,7 +395,16 @@ const DetailsModal = ({ record: initialRecord, onClose, onRecordUpdate, companyF
 
         {/* ── Bezvredni materijal section ── */}
         <div className="border-2 border-gray-400 rounded-lg p-3 mb-3 bg-white">
-          <h3 className="font-semibold text-default mb-2">Bezvredni materijal</h3>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-semibold text-default">Bezvredni materijal</h3>
+            <button
+              className="p-1 hover:bg-gray-200 rounded cursor-pointer"
+              onClick={() => setShowExpiredHelp(true)}
+              title="Pomoć"
+            >
+              <BsInfoCircle size={18} className="text-default" />
+            </button>
+          </div>
           <div className="grid grid-cols-2 gap-2 mb-2">
             <div>
               <label className="text-xs font-semibold">Redni broj</label>
@@ -359,7 +433,7 @@ const DetailsModal = ({ record: initialRecord, onClose, onRecordUpdate, companyF
               disabled={locked || loading}
               onClick={generateExpired}
             >
-              Generiši
+              Generiši PDF
             </button>
             {record.expiredPdfPath && (
               <button
@@ -415,6 +489,77 @@ const DetailsModal = ({ record: initialRecord, onClose, onRecordUpdate, companyF
           modalMessage={`Da li želite otvoriti godinu ${record.year}?`}
         />
       )}
+      {showDeleteExpiredConfirm && (
+        <ModalDelete
+          setModalOn={setShowDeleteExpiredConfirm}
+          setChoice={setDeleteExpiredChoice}
+          modalMessage="Ako je izveštaj bezvrednog materijala ispravan, obrišite istekle dokumente?"
+        />
+      )}
+
+      {showArchiveHelp && (
+        <InfoModal
+          onClose={() => setShowArchiveHelp(false)}
+          sections={[
+            {
+              header: "Redni broj",
+              text: "Potrebno uneti redni broj za prvu godinu unosa, tako da se nastavlja na prethodnu godinu, poslednji redni broj prethodne godine + 1. Kada se preda arhivska knjiga godine i godina zatvori, pri otvaranju nove redni broj će biti automatski postavljen u odnosu na prethodnu godinu.",
+            },
+            {
+              header: "Poslednji redni broj",
+              text: "Nije moguća izmena, automatski se postavlja na osnovu broja kategorija u arhivskoj knjizi.",
+            },
+            {
+              header: "Generiši",
+              text: "Klikom na dugme 'Generiši' kreirate pregled svih redova koji će biti uključeni u arhivsku knjiga na osnovu unetog rednog broja. Zatim možete dodati napomene za svaki red ako je potrebno.",
+            },
+            {
+              header: "Generiši PDF",
+              text: "Nakon što ste pregledali redove i eventualno dodali napomene, klikom na 'Generiši PDF' kreirate PDF dokument arhivske knjige koji se otvara u novom prozoru, gde možete pregledati i sačuvati dokument.",
+            },
+            {
+              header: "Pregledaj PDF",
+              text: "Ako je arhivska knjiga već generisana, klikom na 'Pregledaj PDF' otvara se prethodno generisani PDF dokument arhivske knjige.",
+            },
+          ]}
+        />
+      )}
+
+      {showExpiredHelp && (
+        <InfoModal
+          onClose={() => setShowExpiredHelp(false)}
+          sections={[
+            {
+              header: "Redni broj",
+              text: "Potrebno uneti redni broj za prvu godinu unosa, tako da se nastavlja na prethodnu godinu, poslednji redni broj prethodne godine + 1. Kada se preda arhivska knjiga godine i godina zatvori, pri otvaranju nove redni broj će biti automatski postavljen u odnosu na prethodnu godinu.",
+            },
+            {
+              header: "Generiši PDF",
+              text: "Klikom na dugme 'Generiši' kreirate izveštaj svih dokumenata koji su istekli.",
+            },
+            {
+              header: "Pregledaj PDF",
+              text: "Ako je arhivska knjiga već generisana, klikom na 'Pregledaj PDF' otvara se prethodno generisani PDF dokument arhivske knjige.",
+            },
+          ]}
+        />
+      )}
+
+      {showFooterHelp && (
+        <InfoModal
+          onClose={() => setShowFooterHelp(false)}
+          sections={[
+            {
+              header: "Zatvori godinu",
+              text: "Nakon što predate arhivsku knjigu i ako je sve prošlo kako treba. Klikom na 'Zatvori godinu' arhivska knjiga za tekuću godinu se zaključava i više nije moguće dodavati ili menjati redove. Tada možete otvoriti narednu godinu.",
+            },
+            {
+              header: "Brisanje isteklih dokumenata",
+              text: "Ako je izveštaj ispravan i sigurni ste da se dokumenti mogu obrisati, potvrdom 'Zatvori godinu' sistem će automatski obrisati (biće u obrisani dokumenti) sve istekle dokumente iz arhive za tu godinu.",
+            },
+          ]}
+        />
+      )}
     </div>
   );
 };
@@ -466,6 +611,7 @@ const ArchiveBookPage = () => {
     try {
       const resp = await userRequest.post("archive-book", { year });
       const newRecord = resp.data;
+      notifyCreated("Knjiga");
       setRecords((prev) => [newRecord, ...prev].sort((a, b) => b.year - a.year));
       setShowAddModal(false);
       setSelectedRecord(newRecord);
@@ -480,6 +626,7 @@ const ArchiveBookPage = () => {
     setErrors({});
     try {
       await userRequest.delete(`archive-book/${recordToDelete._id}`);
+      notifyDeleted("Knjiga");
       setRecords((prev) => prev.filter((r) => r._id !== recordToDelete._id));
     } catch (err) {
       handleRequestErrorAlert(err);

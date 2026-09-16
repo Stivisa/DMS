@@ -11,6 +11,7 @@ import InfoModal from "../components/modal/InfoModal";
 import SearchFilter from "../components/SearchFilter";
 import { PiEye, PiEyeSlash } from "react-icons/pi";
 import ErrorMessages from "../components/ErrorMessages";
+import { notifyCreated, notifyUpdated, notifyDeleted } from "../utils/toastNotifications";
 
 const Users = () => {
   const [filteredUsers, setFilteredUsers] = useState([]);
@@ -49,6 +50,7 @@ const Users = () => {
       await userRequest
         .delete("users/" + selectedUserDelete._id)
         .then(() => {
+          notifyDeleted("Korisnik");
           getUsers();
         })
         .catch(function (err) {
@@ -86,6 +88,7 @@ const Users = () => {
         password: password,
       })
       .then(() => {
+        notifyCreated("Korisnik");
         setUsername("");
         setPassword("");
         getUsers();
@@ -102,10 +105,13 @@ const Users = () => {
       .put("users/" + user._id, {
         isAdmin: !user.isAdmin,
       })
+      .then(() => {
+        notifyUpdated("Korisnik");
+        getUsers();
+      })
       .catch(function (error) {
         handleRequestErrorAlert(error);
       });
-    getUsers();
   }
 
   function sortingCreatedAt() {

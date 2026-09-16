@@ -9,6 +9,7 @@ import { handleRequestErrorAlert } from "../utils/errorHandlers";
 import InfoModal from "../components/modal/InfoModal";
 import SearchFilter from "../components/SearchFilter";
 import ErrorMessages from "../components/ErrorMessages";
+import { notifyCreated, notifyUpdated, notifyDeleted } from "../utils/toastNotifications";
 
 const Locations = () => {
   const [filteredLocations, setFilteredLocations] = useState([]);
@@ -46,6 +47,7 @@ const Locations = () => {
       await userRequest
         .delete("locations/" + selectedLocationDelete._id)
         .then(() => {
+          notifyDeleted("Lokacija");
           getLocations();
         })
         .catch(function (err) {
@@ -80,6 +82,7 @@ const Locations = () => {
       await userRequest
         .put("locations/" + selectedLocationEdit._id, { name })
         .then(() => {
+          notifyUpdated("Lokacija");
           setName("");
           setSelectedLocationEdit(null);
           getLocations();
@@ -92,6 +95,7 @@ const Locations = () => {
       await userRequest
         .post("locations", { name })
         .then(() => {
+          notifyCreated("Lokacija");
           setName("");
           getLocations();
         })
@@ -248,7 +252,12 @@ const Locations = () => {
           {filteredLocations.map((location) => (
             <li
               key={location._id}
-              className="grid grid-cols-3 row-properties items-center"
+              className="grid grid-cols-3 row-properties items-center cursor-pointer"
+              onDoubleClick={() => {
+                setSelectedLocationEdit(location);
+                setName(location.name);
+                setErrors({});
+              }}
             >
               <p className="px-1">{location.name}</p>
               <p className="px-1">

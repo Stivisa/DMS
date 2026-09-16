@@ -16,12 +16,12 @@ const formidable = require("formidable");
 const fse = require("fs-extra");
 const router = require("express").Router();
 const archiver = require("archiver");
-const { generatePdfperDocument, generatePdfperCategory } = require("../utils/archiveBook");
-const { generateExpiredReport } = require("../utils/expiredReport");
+const { generateArchiveDocumentsReport, generateExpiredDocumentsReport } = require("../utils/documentReports");
 const Setting = require("../models/Setting");
 const Company = require("../models/Company");
 const logger = require("../middlewares/logger");
 const CustomError = require("../utils/CustomError");
+const { auditLog, getChanges } = require("../utils/auditLog");
 const { format } = require('date-fns');
 const publicRouter = require("express").Router();
 const companyCollectionMiddleware = require("../middlewares/companyCollectionMiddleware");
@@ -58,8 +58,19 @@ router.post("/", verifyTokenAndUser, async (req, res) => {
     const newDocument = new collection(result);
     newDocument.createdByUser = req.user.id;
     const savedDocument = await newDocument.save();
-
-    res.status(200).json(savedDocument);
+    await auditLog({
+      userId: req.user.id,
+      username: req.user.username,
+      companyId: req.headers.companyid,
+      companyName: req.headers.companyname,
+      action: "CREATE",
+      resource: "Document",
+      resourceId: savedDocument._id,
+      resourceName: savedDocument.serialNumber ? String(savedDocument.serialNumber) : savedDocument.name,
+      endpoint: req.originalUrl,
+      status: 200,
+    });
+    return res.status(200).json(savedDocument);
   } catch (err) {
     console.log("result.filePath", result?.filePath);
     handleError(res, err, result?.filePath, uploadDir);
@@ -97,7 +108,7 @@ router.put("/:id", verifyTokenAndUser, async (req, res) => {
     const updatedDocument = await collection.findByIdAndUpdate(
       req.params.id,
       { $set: result },
-      { new: true },
+      { new: false },
     );
 
     if (!updatedDocument) {
@@ -108,8 +119,20 @@ router.put("/:id", verifyTokenAndUser, async (req, res) => {
           code: "NOT_FOUND",
         });
     }
-
-    res.status(200).json(updatedDocument);
+    await auditLog({
+      userId: req.user.id,
+      username: req.user.username,
+      companyId: req.headers.companyid,
+      companyName: req.headers.companyname,
+      action: "UPDATE",
+      resource: "Document",
+      resourceId: updatedDocument._id,
+      resourceName: updatedDocument.serialNumber ? String(updatedDocument.serialNumber) : updatedDocument.name,
+      endpoint: req.originalUrl,
+      status: 200,
+      changes: getChanges(updatedDocument, result),
+    });
+    return res.status(200).json({ ...updatedDocument._doc, ...result });
   } catch (err) {
     handleError(res, err, result?.filePath, uploadDir);
     return;
@@ -179,6 +202,18 @@ router.put("/recycle/:id", verifyTokenAndUser, async (req, res) => {
           code: "NOT_FOUND",
         });
     }
+    await auditLog({
+      userId: req.user.id,
+      username: req.user.username,
+      companyId: req.headers.companyid,
+      companyName: req.headers.companyname,
+      action: "DELETE",
+      resource: "Document",
+      resourceId: updatedDocument._id,
+      resourceName: updatedDocument.serialNumber ? String(updatedDocument.serialNumber) : updatedDocument.name,
+      endpoint: req.originalUrl,
+      status: 200,
+    });
     return res.status(200).json(updatedDocument);
   } catch (err) {
     logger.error("Error recycle document:", err);
@@ -258,7 +293,19 @@ router.put("/restore/:id", verifyTokenAndUser, async (req, res) => {
           code: "NOT_FOUND",
         });
     }
-    res.status(200).json(updatedDocument);
+    await auditLog({
+      userId: req.user.id,
+      username: req.user.username,
+      companyId: req.headers.companyid,
+      companyName: req.headers.companyname,
+      action: "UPDATE",
+      resource: "Document",
+      resourceId: updatedDocument._id,
+      resourceName: updatedDocument.serialNumber ? String(updatedDocument.serialNumber) : updatedDocument.name,
+      endpoint: req.originalUrl,
+      status: 200,
+    });
+    return res.status(200).json(updatedDocument);
   } catch (err) {
     logger.error("Error restore document:", err);
     if (oldFilePath && renamed) {
@@ -300,16 +347,27 @@ router.delete("/:id", verifyTokenAndUser, async (req, res) => {
         throw err;
       }
     }
-    res.status(200).json("Document has been deleted.");
+    await auditLog({
+      userId: req.user.id,
+      username: req.user.username,
+      companyId: req.headers.companyid,
+      companyName: req.headers.companyname,
+      action: "DELETE",
+      resource: "Document",
+      resourceId: deletedDocument._id,
+      resourceName: deletedDocument.serialNumber ? String(deletedDocument.serialNumber) : deletedDocument.name,
+      endpoint: req.originalUrl,
+      status: 200,
+    });
+    return res.status(200).json("Document has been deleted.");
   } catch (err) {
     logger.error("Error delete document:", err);
-    res
+    return res
       .status(500)
       .json({
         error: "Greška pri trajnom brisanju dokumenta!",
         code: "GENERIC_ERROR",
       });
-    return;
   }
 });
 
@@ -323,7 +381,7 @@ router.get("/:id", async (req, res) => {
         .status(404)
         .json({ error: "Dokument nije pronađen.", code: "NOT_FOUND" });
     }
-    res.status(200).json(document);
+    return res.status(200).json(document);
   } catch (err) {
     logger.error("Error get document:", err);
     res
@@ -385,7 +443,7 @@ router.get("/recycle/all", async (req, res) => {
       originDate: -1,
     }).populate("categories");
 
-    res.status(200).json(documents);
+    return res.status(200).json(documents);
   } catch (err) {
     logger.error("Error get all documents from recycle bin:", err);
     res
@@ -473,17 +531,16 @@ router.get("/file/download", verifyTokenAndUser, async (req, res) => {
     });
   } catch (err) {
     if (err instanceof CustomError) {
-      res.status(400).json({ error: err.message, code: err.code });
+      return res.status(400).json({ error: err.message, code: err.code });
     } else {
       logger.error("Error file download:", err);
-      res
+      return res
         .status(500)
         .json({
           error: "Greška prilikom preuzimanja fajla.",
           code: "GENERIC_ERROR",
         });
     }
-    return;
   }
 });
 //download folder
@@ -566,17 +623,16 @@ router.get("/folder-contents/:id", verifyTokenAndUser, async (req, res) => {
         };
       });
 
-      res.status(200).json(fileDetails);
+      return res.status(200).json(fileDetails);
     });
   } catch (err) {
     logger.error("Error folder content:", err);
-    res
+    return res
       .status(500)
       .json({
         error: "Greška prilikom pregleda foldera.",
         code: "GENERIC_ERROR",
       });
-    return;
   }
 });
 
@@ -595,7 +651,7 @@ router.post("/import/json", verifyTokenAndAdmin, (req, res) => {
     .insertMany(req.body?.importjson, { ordered: false })
     .then((response) => {
       //console.log("saved to mongo db", response);
-      res.status(200).json(response);
+      return res.status(200).json(response);
     })
     .catch((error) => {
       //return error even if skipped duplicate correctly
@@ -658,7 +714,7 @@ publicRouter.get("/report/:filename", (req, res) => {
     }
 });
 
-router.get("/generate/archivebook", verifyTokenAndUser, async (req, res) => {
+router.get("/report/archivedocuments", verifyTokenAndUser, async (req, res) => {
   const queryParams = getQueryParams(req);
   queryParams.expired = false; //only active documents
   try {
@@ -687,7 +743,7 @@ router.get("/generate/archivebook", verifyTokenAndUser, async (req, res) => {
     }
     const companyName = company.name;
 
-    await generatePdfperCategory(
+    await generateArchiveDocumentsReport(
       documents,
       companyName,
       companyFolder,
@@ -695,55 +751,7 @@ router.get("/generate/archivebook", verifyTokenAndUser, async (req, res) => {
       res,
     );
   } catch (err) {
-    logger.error("Error archive book:", err);
-    res
-      .status(500)
-      .json({
-        error: "Greška prilikom generisanja arhivske knjige.",
-        code: "GENERIC_ERROR",
-      });
-    return;
-  }
-});
-
-router.get("/generate/archivebookdocuments", verifyTokenAndUser, async (req, res) => {
-  const queryParams = getQueryParams(req);
-  queryParams.expired = false; //only active documents
-  try {
-    const collection = req.collection;
-    const companyFolder = req.companyfolder;
-    const { query } = generateQueryAndSortOptions(queryParams);
-
-    const documents = await collection
-      .find(query)
-      .sort({ serialNumber: 1 })
-      .populate("categories");
-
-    const setting = await Setting.findOne({ name: "brojSaglasnosti" });
-    if (!setting) {
-      return res
-        .status(404)
-        .json({ error: "Broj saglasnosti nije pronađen.", code: "NOT_FOUND" });
-    }
-    const consentNumber = setting.value;
-
-    const company = await Company.findById(req.companyId);
-    if (!company) {
-      return res
-        .status(404)
-        .json({ error: "Kompanija nije pronađena.", code: "NOT_FOUND" });
-    }
-    const companyName = company.name;
-
-    await generatePdfperDocument(
-      documents,
-      companyName,
-      companyFolder,
-      consentNumber,
-      res,
-    );
-  } catch (err) {
-    logger.error("Error archive book:", err);
+    logger.error("Error archive documents report:", err);
     res
       .status(500)
       .json({
@@ -757,41 +765,40 @@ router.get("/generate/archivebookdocuments", verifyTokenAndUser, async (req, res
 //compare keepDate and set expired to true if keepDate is less than now
 //maybe should be run once a day, cron job
 //for now i dont want to run this, i will just compare keepDate
-router.put('/check/expired', async (req, res) => {
-  const queryParams = getQueryParams(req);
-  queryParams.expired = false; //only active documents
-  try {
-    const { query, sortOptions } = generateQueryAndSortOptions(queryParams);
-    const now = new Date();
-    const collection = req.collection;
+// router.put('/check/expired', async (req, res) => {
+//   const queryParams = getQueryParams(req);
+//   queryParams.expired = false; //only active documents
+//   try {
+//     const { query, sortOptions } = generateQueryAndSortOptions(queryParams);
+//     const now = new Date();
+//     const collection = req.collection;
 
-    await collection.updateMany(
-      {
-        ...query,
-        keepDate: { $lte: now },
-      },
-      {
-        $set: { expired: true },
-      },
-    );
-    res.status(200).json({ message: 'Checked and updated expired documents successfully' });
-  } catch (err) {
-    logger.error('Error updating expired documents:', err);
-    res.status(500).json({ error: 'Error updating expired documents', code: 'CHECKEXPIRED_ERROR' });
-    return;
-  }
-});
+//     await collection.updateMany(
+//       {
+//         ...query,
+//         keepDate: { $lte: now },
+//       },
+//       {
+//         $set: { expired: true },
+//       },
+//     );
+//     res.status(200).json({ message: 'Checked and updated expired documents successfully' });
+//   } catch (err) {
+//     logger.error('Error updating expired documents:', err);
+//     res.status(500).json({ error: 'Error updating expired documents', code: 'CHECKEXPIRED_ERROR' });
+//     return;
+//   }
+// });
 
-router.get("/generate/reportexpired", verifyTokenAndUser, async (req, res) => {
+router.get("/report/expireddocuments", verifyTokenAndUser, async (req, res) => {
   const queryParams = getQueryParams(req);
   queryParams.expired = true; //only expired documents
   try {
     const collection = req.collection;
     const companyFolder = req.companyfolder;
-    const { query, sortOptions } = generateQueryAndSortOptions(queryParams);
-    let documents;
+    const { query } = generateQueryAndSortOptions(queryParams);
 
-    documents = await collection.find(query).sort({ serialNumber: 1 }).populate("categories");
+    const documents = await collection.find(query).sort({ serialNumber: 1 }).populate("categories");
 
     const setting = await Setting.findOne({ name: "brojSaglasnosti" });
     if (!setting) {
@@ -809,21 +816,19 @@ router.get("/generate/reportexpired", verifyTokenAndUser, async (req, res) => {
     }
     const companyName = company.name;
 
-    await generateExpiredReport(
+    await generateExpiredDocumentsReport(
       documents,
       companyName,
       companyFolder,
       consentNumber,
-      queryParams.startdate,
-      queryParams.enddate,
       res,
     );
   } catch (err) {
-    logger.error("Error archive book:", err);
+    logger.error("Error expired documents report:", err);
     res
       .status(500)
       .json({
-        error: "Greška prilikom generisanja izvestaja bezvrednog materijala.",
+        error: "Greška prilikom generisanja izveštaja bezvrednog materijala.",
         code: "GENERIC_ERROR",
       });
     return;
@@ -849,6 +854,7 @@ router.delete('/delete/expired', verifyTokenAndAdmin, async (req, res) => {
     let renamed = false;
 
     let errors = [];
+    const deletedDocuments = []; // Track deleted documents for audit
     await Promise.all(documents.map(async (document) => {
       try {
       oldFilePath = document?.filePath;
@@ -899,6 +905,13 @@ router.delete('/delete/expired', verifyTokenAndAdmin, async (req, res) => {
           await fs.promises.rename(newPath, oldPath); // rollback
         }
         errors.push({ id: document._id, error: 'Not found during update' });
+      } else {
+        // Document successfully deleted - track for audit
+        deletedDocuments.push({
+          serialNumber: document.serialNumber,
+          content: document.content,
+          filename: oldFilePath ? path.basename(oldFilePath) : 'N/A',
+        });
       }
     } catch (err) {
       logger.error("Error deleting expired document:", err);
@@ -914,19 +927,37 @@ router.delete('/delete/expired', verifyTokenAndAdmin, async (req, res) => {
   }));
     if (errors.length > 0) {
       logger.error("Error deleting expired document:", errors);
-      res.status(500).json({
+      return res.status(500).json({
         error: "Greška prilikom brisanja isteklog dokumenta.",
         code: "GENERIC_ERROR",
       });
     }
-    res.status(200).json("Expired documents has been deleted.");
+
+    // Build detailed audit log with deleted document information
+    const deletedDocumentsList = deletedDocuments
+      .map(doc => `RBr: ${doc.serialNumber}, Sadržaj: ${doc.content}, Fajl: ${doc.filename}`)
+      .join(" | ");
+
+    await auditLog({
+      userId: req.user.id,
+      username: req.user.username,
+      companyId: req.headers.companyid,
+      companyName: req.headers.companyname,
+      action: "DELETE",
+      resource: "Document",
+      resourceId: null,
+      resourceName: `Bezvredni dokumenti - Obrisano ${deletedDocuments.length} dokumenata: ${deletedDocumentsList}`,
+      endpoint: req.originalUrl,
+      status: 200,
+    });
+
+    return res.status(200).json("Expired documents has been deleted.");
   } catch (err) {
     logger.error("Error deleting expired documents:", err);
-    res.status(500).json({
+    return res.status(500).json({
       error: "Greška prilikom brisanja isteklih dokumenata.",
       code: "GENERIC_ERROR",
     });
-    return;
   }
 });
 
@@ -934,6 +965,8 @@ const generateQueryAndSortOptions = (queryParams) => {
   const {
     category,
     tag,
+    location,
+    client,
     startdate,
     enddate,
     content,
@@ -965,6 +998,12 @@ const generateQueryAndSortOptions = (queryParams) => {
   }
   if (tag) {
     query.tags = { $in: [tag] };
+  }
+  if (location) {
+    query.location = location;
+  }
+  if (client) {
+    query.client = client;
   }
   if (startdate && enddate) {
     const startDate = new Date(startdate);
@@ -1135,10 +1174,10 @@ const handleError = (res, err, filePath, uploadDir) => {
         });
     }
   } else if (err instanceof CustomError) {
-    res.status(400).json({ error: err.message, code: err.code });
+    return res.status(400).json({ error: err.message, code: err.code });
   } else {
     logger.error("Error:", err);
-    res
+    return res
       .status(500)
       .json({ error: "Greška prilikom obrade.", code: "GENERIC_ERROR" });
   }
@@ -1149,6 +1188,8 @@ function getQueryParams(req) {
   return {
     category: req.query.category,
     tag: req.query.tag,
+    location: req.query.location,
+    client: req.query.client,
     startdate: req.query.startdate,
     enddate: req.query.enddate,
     content: req.query.content,
@@ -1165,4 +1206,4 @@ const createContentDisposition = (filename, disposition = 'attachment') => {
   return `${disposition}; filename="${asciiFallback}"; filename*=UTF-8''${encodedFileName}`;
 };
 
-module.exports = { router, publicRouter };
+module.exports = { router, publicRouter, generateQueryAndSortOptions };
